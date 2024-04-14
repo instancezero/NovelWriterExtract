@@ -2,11 +2,11 @@
   "name": "jal/novelwriterextract",
   "description": "description",
   "minimum-stability": "stable",
-  "license": "proprietary",
+  "license": "GPL-3.0-or-later",
   "authors": [
     {
       "name": "jal",
-      "email": "email@example.com"
+      "email": "instance1@gmail.com"
     }
   ],
   "require": {
