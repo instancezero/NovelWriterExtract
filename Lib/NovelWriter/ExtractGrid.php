@@ -10,6 +10,8 @@ use SimpleXMLElement;
 
 class ExtractGrid
 {
+    const STRUCTURE_KEYWORD = 'story';
+
     static protected array $alignment = [
         'words' => Alignment::HORIZONTAL_RIGHT,
         'time' => Alignment::HORIZONTAL_RIGHT,
@@ -213,7 +215,7 @@ class ExtractGrid
         if (str_starts_with($command, 'synopsis')) {
             $this->sceneBuffer['synopsis'] = trim($parts[1]);
             $this->inUse['synopsis'] = true;
-        } elseif (str_starts_with($command, 'story.')) {
+        } elseif (str_starts_with($command, self::STRUCTURE_KEYWORD . '.')) {
             $term = trim(substr($command, 6));
             $note = count($parts) > 1 ? trim($parts[1]) : '';
             if ($note !== '') {
