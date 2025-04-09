@@ -1,0 +1,172 @@
+{
+  "columns": [
+    "_sequence",
+    "name",
+    {
+      "heading": "Where",
+      "key": "@location",
+      "style": {
+        "align": "center",
+        "onFirst": true
+      }
+    },
+    {
+      "heading": "When",
+      "key": "time"
+    },
+    {
+      "heading": "P1",
+      "style": {
+        "align": "center",
+        "onFirst": true
+      },
+      "test": [
+        {
+          "arg": "@plot",
+          "op": "includes",
+          "value": "P1"
+        }
+      ],
+      "key": "@plot"
+    },
+    {
+      "heading": "P2",
+      "style": {
+        "align": "center",
+        "onFirst": true
+      },
+      "test": [
+        {
+          "arg": "@plot",
+          "op": "includes",
+          "value": "P2"
+        }
+      ],
+      "result": "P2"
+    },
+    {
+      "heading": "P3",
+      "style": {
+        "align": "center",
+        "onFirst": true
+      },
+      "test": [
+        {
+          "arg": "@plot",
+          "op": "includes",
+          "value": "P3"
+        }
+      ],
+      "result": "P3"
+    },
+    {
+      "heading": "Sh",
+      "style": {
+        "align": "center",
+        "onFirst": true
+      },
+      "test": [
+        {
+          "arg": "@char",
+          "op": "includes",
+          "value": "Shawn"
+        }
+      ],
+      "result": "Sh"
+    },
+    {
+      "heading": "Sl",
+      "style": {
+        "align": "center",
+        "onFirst": true
+      },
+      "test": [
+        {
+          "arg": "@char",
+          "op": "includes",
+          "value": "Slip"
+        }
+      ],
+      "result": "Sl"
+    },
+    {
+      "heading": "Mk",
+      "style": {
+        "align": "center",
+        "onFirst": true
+      },
+      "test": [
+        {
+          "arg": "@char",
+          "op": "includes",
+          "value": "Mokhtari"
+        }
+      ],
+      "result": "Mk"
+    },
+    {
+      "heading": "BN",
+      "style": {
+        "align": "center",
+        "onFirst": true
+      },
+      "test": [
+        {
+          "arg": "@char",
+          "op": "includes",
+          "value": "Nakamura"
+        }
+      ],
+      "result": "BN"
+    },
+    {
+      "heading": "PH",
+      "style": {
+        "align": "center",
+        "onFirst": true
+      },
+      "test": [
+        {
+          "arg": "@char",
+          "op": "includes",
+          "value": "Hardaway"
+        }
+      ],
+      "result": "PH"
+    },
+    {
+      "heading": "Dr",
+      "style": {
+        "align": "center",
+        "onFirst": true
+      },
+      "test": [
+        {
+          "arg": "@char",
+          "op": "includes",
+          "value": "Drakos"
+        }
+      ],
+      "result": "Dr"
+    },
+    {
+      "key": "@char",
+      "heading": "Others",
+      "style": {
+        "align": "center",
+        "onFirst": true
+      },
+      "exclude": [
+        "Shawn",
+        "Slip",
+        "Mokhtari",
+        "Nakamura",
+        "Hardaway",
+        "Drakos"
+      ]
+    },
+    "words",
+    "synopsis"
+  ],
+  "wrap": 120
+}

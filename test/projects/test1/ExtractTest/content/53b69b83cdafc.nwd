@@ -1,0 +1,20 @@
+%%~name: Title Page
+%%~path: 7031beac91f75/53b69b83cdafc
+%%~kind: NOVEL/DOCUMENT
+%%~hash: 45ec619c9fd1b1185bc35b38d28cda13b05f0a88
+%%~date: Unknown/2024-10-28 16:42:26
+
+Jane Smith[br]
+42 Main Street[br]
+1234 Capital City <<
+
+[vspace:5]
+
+#! My Novel
+
+>> **By Jane Smith** <<
+
+>> This is the title page. <<
+>> It should be the first document of the project. <<
+
+>> Word Count: [field:textWords] <<

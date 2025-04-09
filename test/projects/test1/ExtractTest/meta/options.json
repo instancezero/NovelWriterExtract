@@ -1,0 +1,20 @@
+{
+  "novelWriter.guiOptions": {
+    "GuiDocViewerPanel": {
+      "colWidths": {
+        "CHARACTER": [100, 100, 100, 100],
+        "PLOT": [100, 100, 100, 100],
+        "WORLD": [100, 100, 100, 100],
+        "TIMELINE": [100, 100, 100, 100],
+        "OBJECT": [100, 100, 100, 100],
+        "ENTITY": [100, 100, 100, 100],
+        "CUSTOM": [100, 100, 100, 100]
+      },
+      "hideInactive": false
+    },
+    "GuiNovelView": {
+      "lastCol": "HIDDEN",
+      "lastColSize": 25
+    }
+  }
+}

@@ -1,0 +1,159 @@
+{
+  "novelWriter.tagsIndex": {
+    "john": {"name": "John", "display": "John Smith", "handle": "14298de4d9524", "heading": "T0001", "class": "CHARACTER"},
+    "mars": {"name": "Mars", "display": "Mars", "handle": "5eaea4e8cdee8", "heading": "T0001", "class": "WORLD"},
+    "earth": {"name": "Earth", "display": "Earth", "handle": "b3e74dbc1f584", "heading": "T0001", "class": "WORLD"},
+    "jane": {"name": "Jane", "display": "Jane Smith", "handle": "bb2c23b3c42cc", "heading": "T0001", "class": "CHARACTER"},
+    "space": {"name": "Space", "display": "Space", "handle": "f1471bef9f2ae", "heading": "T0001", "class": "WORLD"}
+  },
+  "novelWriter.itemIndex": {
+    "14298de4d9524": {
+      "headings": {
+        "T0001": {"level": "H1", "title": "John Smith", "line": 1, "tag": "john", "cCount": 49, "wCount": 9, "pCount": 1, "synopsis": "The sidekick"}
+      }
+    },
+    "2a60782759c6f": {
+      "headings": {
+        "T0000": {"level": "H0", "title": "", "line": 0, "tag": "", "cCount": 0, "wCount": 0, "pCount": 0, "synopsis": ""}
+      }
+    },
+    "53b69b83cdafc": {
+      "headings": {
+        "T0001": {"level": "H1", "title": "My Novel", "line": 8, "tag": "", "cCount": 107, "wCount": 21, "pCount": 3, "synopsis": ""}
+      }
+    },
+    "5aec885635c85": {
+      "headings": {
+        "T0000": {"level": "H0", "title": "", "line": 0, "tag": "", "cCount": 0, "wCount": 0, "pCount": 0, "synopsis": ""}
+      }
+    },
+    "5eaea4e8cdee8": {
+      "headings": {
+        "T0001": {"level": "H1", "title": "Mars", "line": 1, "tag": "mars", "cCount": 28, "wCount": 6, "pCount": 1, "synopsis": ""}
+      },
+      "references": {
+        "T0001": {"space": "@location"}
+      }
+    },
+    "5ee8aebcdebc9": {
+      "headings": {
+        "T0000": {"level": "H0", "title": "", "line": 0, "tag": "", "cCount": 0, "wCount": 0, "pCount": 0, "synopsis": ""}
+      }
+    },
+    "636b6aa9b697b": {
+      "headings": {
+        "T0001": {"level": "H3", "title": "Making a Scene", "line": 1, "tag": "", "cCount": 1987, "wCount": 343, "pCount": 8, "synopsis": ""},
+        "T0002": {"level": "H4", "title": "Some Section Here", "line": 26, "tag": "", "cCount": 432, "wCount": 80, "pCount": 2, "synopsis": ""},
+        "T0003": {"level": "H4", "title": "Text Alignment and Indentation", "line": 32, "tag": "", "cCount": 580, "wCount": 107, "pCount": 6, "synopsis": ""}
+      },
+      "references": {
+        "T0001": {"jane": "@char,@pov", "john": "@char", "earth": "@location", "space": "@mention"}
+      },
+      "notes": {
+        "footnotes": ["f4xr5"]
+      }
+    },
+    "6a2d6d5f4f401": {
+      "headings": {
+        "T0001": {"level": "H2", "title": "So it Begins", "line": 1, "tag": "", "cCount": 95, "wCount": 18, "pCount": 1, "synopsis": "We can add a chapter document, but keep the scene files separate. In the chapter document we can set the meta data that applies to the whole chapter if we wish to. You can add the scenes as child documents directly under the chapter."}
+      },
+      "references": {
+        "T0001": {"jane": "@pov", "earth": "@location"}
+      }
+    },
+    "88706ddc78b1b": {
+      "headings": {
+        "T0001": {"level": "H2", "title": "Where has John Gone?", "line": 1, "tag": "", "cCount": 20, "wCount": 4, "pCount": 0, "synopsis": ""},
+        "T0002": {"level": "H3", "title": "Jane Cannot Find John", "line": 8, "tag": "", "cCount": 119, "wCount": 24, "pCount": 1, "synopsis": ""}
+      },
+      "references": {
+        "T0001": {"jane": "@pov", "space": "@location"},
+        "T0002": {"jane": "@pov", "john": "@focus", "space": "@location"}
+      }
+    },
+    "8a5deb88c0e97": {
+      "headings": {
+        "T0000": {"level": "H0", "title": "", "line": 0, "tag": "", "cCount": 0, "wCount": 0, "pCount": 0, "synopsis": ""}
+      }
+    },
+    "96b68994dfa3d": {
+      "headings": {
+        "T0001": {"level": "H1", "title": "A Note on Structure", "line": 1, "tag": "", "cCount": 369, "wCount": 69, "pCount": 2, "synopsis": ""},
+        "T0002": {"level": "H2", "title": "Headers in Notes", "line": 7, "tag": "", "cCount": 169, "wCount": 30, "pCount": 1, "synopsis": ""},
+        "T0003": {"level": "H2", "title": "Folders in the Tree View", "line": 11, "tag": "", "cCount": 518, "wCount": 94, "pCount": 2, "synopsis": ""},
+        "T0004": {"level": "H2", "title": "Linking Files and Notes", "line": 17, "tag": "", "cCount": 853, "wCount": 153, "pCount": 2, "synopsis": ""}
+      }
+    },
+    "974e400180a99": {
+      "headings": {
+        "T0000": {"level": "H0", "title": "", "line": 0, "tag": "", "cCount": 233, "wCount": 47, "pCount": 2, "synopsis": ""}
+      }
+    },
+    "a520879ca0b45": {
+      "headings": {
+        "T0001": {"level": "H2", "title": "Chapter One", "line": 1, "tag": "", "cCount": 11, "wCount": 2, "pCount": 0, "synopsis": "Remember Jane and John?"},
+        "T0002": {"level": "H3", "title": "Scene One", "line": 7, "tag": "", "cCount": 288, "wCount": 53, "pCount": 2, "synopsis": ""}
+      },
+      "references": {
+        "T0001": {"jane": "@pov"},
+        "T0002": {"jane": "@pov", "john": "@focus"}
+      }
+    },
+    "ae7339df26ded": {
+      "headings": {
+        "T0001": {"level": "H3", "title": "We Found John!", "line": 1, "tag": "", "cCount": 189, "wCount": 37, "pCount": 1, "synopsis": ""}
+      },
+      "references": {
+        "T0001": {"john": "@focus,@pov", "mars": "@location"}
+      }
+    },
+    "b3e74dbc1f584": {
+      "headings": {
+        "T0001": {"level": "H1", "title": "Earth", "line": 1, "tag": "earth", "cCount": 76, "wCount": 15, "pCount": 1, "synopsis": ""}
+      },
+      "references": {
+        "T0001": {"space": "@location"}
+      }
+    },
+    "b8136a5a774a0": {
+      "headings": {
+        "T0000": {"level": "H0", "title": "", "line": 0, "tag": "", "cCount": 0, "wCount": 0, "pCount": 0, "synopsis": ""}
+      }
+    },
+    "ba8a28a246524": {
+      "headings": {
+        "T0001": {"level": "H2", "title": "Interlude", "line": 1, "tag": "", "cCount": 617, "wCount": 101, "pCount": 3, "synopsis": ""}
+      }
+    },
+    "bacb7059e3083": {
+      "headings": {
+        "T0001": {"level": "H1", "title": "Sequel Novel", "line": 1, "tag": "", "cCount": 27, "wCount": 5, "pCount": 1, "synopsis": "Jane and John are back in a sequel to My Novel!"}
+      }
+    },
+    "bb2c23b3c42cc": {
+      "headings": {
+        "T0001": {"level": "H1", "title": "Jane Smith", "line": 1, "tag": "jane", "cCount": 55, "wCount": 9, "pCount": 1, "synopsis": "The heroine"}
+      }
+    },
+    "bc0cbd2a407f3": {
+      "headings": {
+        "T0001": {"level": "H3", "title": "Another Scene", "line": 1, "tag": "", "cCount": 413, "wCount": 81, "pCount": 2, "synopsis": ""},
+        "T0002": {"level": "H3", "title": "More Scenes", "line": 11, "tag": "", "cCount": 135, "wCount": 27, "pCount": 1, "synopsis": ""}
+      },
+      "references": {
+        "T0001": {"john": "@pov", "jane": "@focus", "earth": "@location"},
+        "T0002": {"jane": "@pov", "john": "@focus", "earth": "@location"}
+      }
+    },
+    "edca4be2fcaf8": {
+      "headings": {
+        "T0001": {"level": "H1", "title": "Part One", "line": 1, "tag": "", "cCount": 26, "wCount": 6, "pCount": 1, "synopsis": ""}
+      }
+    },
+    "f1471bef9f2ae": {
+      "headings": {
+        "T0001": {"level": "H1", "title": "Space", "line": 1, "tag": "space", "cCount": 115, "wCount": 24, "pCount": 1, "synopsis": ""}
+      }
+    }
+  }
+}

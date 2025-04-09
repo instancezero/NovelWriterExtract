@@ -1,0 +1,7 @@
+{
+  "src": "./bin/novelWriterExtract.phar",
+  "dest": "./bin",
+  "ini": "./src/phpacker.ini",
+  "platform": "all",
+  "php": "8.4"
+}
