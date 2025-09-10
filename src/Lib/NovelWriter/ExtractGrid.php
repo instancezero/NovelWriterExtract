@@ -1,13 +1,26 @@
 <?php
+/**
+ * NovelWriterExtract, a tool for extracting metadata from a novelWriter project.
+ *
+ * Copyright 2025 Alan Langford. All rights reserved.
+ *
+ * Licensed under the General Public License, version 3 or higher. See the LICENSE
+ * file in the root of this project for details.
+ *
+ */
 
 namespace Lib\NovelWriter;
 
 use Abivia\Criteria\Criteria;
+use DateMalformedStringException;
+use DateTimeImmutable;
+use DateTimeZone;
 use Exception;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use PhpOffice\PhpSpreadsheet\Writer\Html as HtmlWriter;
 use SimpleXMLElement;
 
 class ExtractGrid
@@ -31,8 +44,10 @@ class ExtractGrid
         '_blank' => '',
         '_novel' => 'Novel',
         '_sequence' => '#',
+        '_active' => 'Active',
         'name' => 'Scene',
         'words' => 'Words',
+        '_status' => 'Status',
         'synopsis' => 'Synopsis',
         'value' => 'Value Shift',
         'polarity' => 'Polarity Shift',
@@ -73,6 +88,7 @@ class ExtractGrid
         'comments' => 'Additional Notes',
     ];
     protected array $inUse = [];
+
     /**
      * @var false|mixed
      */
@@ -85,15 +101,67 @@ class ExtractGrid
     protected Worksheet $sheet;
     protected string $sourcePath;
     protected Spreadsheet $spreadsheet;
+    /**
+     * @var array|mixed
+     */
+    protected array $status;
     static protected array $styles = [
         '*' => ['align' => Alignment::HORIZONTAL_GENERAL, 'onFirst' => false, 'wrap' => true],
         '@' => ['align' => Alignment::HORIZONTAL_CENTER, 'onFirst' => true, 'wrap' => true],
         'comments' => ['align' => Alignment::HORIZONTAL_LEFT, 'wrap' => false],
         'duration' => ['align' => Alignment::HORIZONTAL_RIGHT],
         'time' => ['align' => Alignment::HORIZONTAL_LEFT],
-        'words' => ['align' => Alignment::HORIZONTAL_RIGHT],
+        'words' => [
+            'align' => Alignment::HORIZONTAL_RIGHT,
+            'numberFormat' => '#,##0',
+        ],
     ];
+    /**
+     * @var array|mixed
+     */
+    protected array $wordCountStyle;
+    protected array $wordCounts;
+    protected int $wordTotal;
     protected int $wrapSize = 40;
+
+    /**
+     * Get a word count by scene without counting headers, comments, etc.
+     * @param array $markdown
+     * @return int[]
+     */
+    private function countWords(array $markdown): array
+    {
+        $count = [-1 => 0];
+        $scene = -1;
+        $wordCount = 0;
+        $hasWords = false;
+        foreach ($markdown as $line) {
+            $line = rtrim($line);
+            if ($line === '') {
+                continue;
+            }
+            if ($this->isScene($line)) {
+                $count[$scene++] = $wordCount;
+                $wordCount = 0;
+                $hasWords = false;
+                continue;
+            }
+            if (preg_match('!^[%@#[]!', $line)) {
+                continue;
+            }
+            $newWords = str_word_count($line);
+            $wordCount += $newWords;
+            $hasWords = true;
+        }
+        if ($hasWords) {
+            $count[$scene] = $wordCount;
+        }
+        $count[0] ??= 0;
+        $count[0] += $count[-1];
+        unset($count[-1]);
+
+        return $count;
+    }
 
     /**
      * Write the scene data to the specified path
@@ -125,8 +193,12 @@ class ExtractGrid
                 'xlsx' => IOFactory::WRITER_XLSX,
                 default => throw new Exception("Unsupported file type: $ext"),
             };
+            $this->spreadsheet->setActiveSheetIndex(0);
             $writer = IOFactory::createWriter($this->spreadsheet, $typeMap);
-            $writer->save($path);
+            if ($writer instanceof HtmlWriter) {
+                $writer->writeAllSheets();
+            }
+            $writer->save($this->parsePath($path));
             $this->spreadsheet->disconnectWorksheets();
             unset($this->spreadsheet);
         } catch (Exception $exception) {
@@ -135,7 +207,12 @@ class ExtractGrid
         }
     }
 
-    private function formatCell(int $row, int $col, array $specs): void
+    private function formatCell(
+        Worksheet $sheet,
+        int $row,
+        int $col,
+        array $specs = []
+    ): void
     {
         $style = [
             'alignment' => [
@@ -147,11 +224,16 @@ class ExtractGrid
         if ($specs['bold'] ?? false) {
             $style['font'] = ['bold' => true];
         }
-        $this->sheet->getStyle([$col, $row])->applyFromArray($style);
+        if ($specs['numberFormat'] ?? false) {
+            $style['numberFormat'] = ['formatCode' => $specs['numberFormat']];
+        }
+        $sheet->getStyle([$col, $row])->applyFromArray($style);
     }
 
     private function formatStyle(int $row, int $col, string $key): void
     {
+        $this->formatCell($this->sheet, $row, $col, $this->getStyle($key));
+        /*
         $style = $this->getStyle($key);
         $this->sheet->getStyle([$col, $row])->applyFromArray([
             'alignment' => [
@@ -160,8 +242,14 @@ class ExtractGrid
                 'wrapText' => $style['wrap'] ?? true,
             ],
         ]);
+        */
     }
 
+    /**
+     * Get headings for each column that's in use.
+     *
+     * @return array|string[]
+     */
     private function getHeaders(): array
     {
         $liveHeadings = self::$headings;
@@ -178,6 +266,13 @@ class ExtractGrid
         return $liveHeadings;
     }
 
+    /**
+     * Convert this scene data into a string, save the string in the contentString
+     * and contentLength properties.
+     * @param array $sceneData
+     * @param string $column
+     * @return void
+     */
     private function getSceneData(array $sceneData, string $column): void
     {
         $data = $sceneData[$column] ?? '';
@@ -211,6 +306,12 @@ class ExtractGrid
         return $style;
     }
 
+    private function isScene(string $line): bool
+    {
+        return str_starts_with($line, '### ')
+            || str_starts_with($line, '###! ');
+    }
+
     /**
      * Extracts scene information from the project XML file.
      * @throws Exception
@@ -223,6 +324,7 @@ class ExtractGrid
         );
         $parent = '';
         $name = '';
+        $this->loadStatus();
         foreach ($this->project->content->item as $item) {
             if ((string)$item['class'] !== 'NOVEL') {
                 continue;
@@ -234,7 +336,13 @@ class ExtractGrid
                 $parent = $handle;
                 $name = isset($item->name) ? (string)$item->name : '';
             } elseif ($itemType === 'FILE' && $root === $parent) {
-                $scene = ['handle' => $handle, '_novel' => $name];
+                $statusKey = (string)$item->name['status'];
+                $scene = [
+                    'handle' => $handle,
+                    '_active' => (string)$item->name['active'],
+                    '_novel' => $name,
+                    '_status' => $this->status[$statusKey] ?? 'Not Set',
+                ];
                 $scene['words'] = isset($item->meta['wordCount'])
                     ? (string)$item->meta['wordCount'] : '';
 
@@ -245,10 +353,17 @@ class ExtractGrid
 
     private function loadScenes(): void
     {
-        $this->inUse = ['name' => true, 'words' => true];
+        $this->inUse = [
+            '_status' => true,
+            '_active' => true,
+            'name' => true,
+            'words' => true,
+        ];
         $this->sceneData = [];
         $this->sceneBuffer = [];
         $this->commentBuffer = [];
+        $this->wordCounts = [];
+        $this->wordTotal = 0;
         // Track if we're in the scene header or the body, so we don't accumulate inline comments.
         $inHeader = true;
         foreach ($this->sceneFiles as $scene) {
@@ -256,11 +371,15 @@ class ExtractGrid
                 "\n",
                 @file_get_contents("$this->sourcePath/content/{$scene['handle']}.nwd")
             );
-            // The word count is only useful in for the file, so place it in the first scene.
-            $words = $scene['words'];
+            // Get word counts by scene.
+            $wordCounts = $this->countWords($markdown);
+            $sceneId = 0;
             foreach ($markdown as $line) {
                 $line = rtrim($line);
-                if (str_starts_with($line, '### ')) {
+                if ($line === '') {
+                    continue;
+                }
+                if ($this->isScene($line)) {
                     // This is the start of a scene, save the preceding scene, if any.
                     if (count($this->sceneBuffer)) {
                         $this->sceneBuffer['comments'] = $this->commentBuffer;
@@ -268,12 +387,20 @@ class ExtractGrid
                     }
                     // Reset the header flag, invalidate the word count, and clear the comment buffer
                     $inHeader = true;
+                    $status = $scene['_status'];
+                    $this->wordCounts[$status] ??= ['yes' => 0, 'no' => 0, '#yes' => 0, '#no' => 0];
+                    $words = $wordCounts[$sceneId++] ?? 0;
+                    $this->wordTotal += $words;
+                    $active = $scene['_active'];
+                    $this->wordCounts[$status][$active] += $words;
+                    ++$this->wordCounts[$status]["#$active"];
                     $this->sceneBuffer = [
+                        '_active' => $active,
                         '_novel' => $scene['_novel'],
+                        '_status' => $status,
                         'name' => trim(substr($line, 4)),
                         'words' => $words,
                     ];
-                    $words = '';
                     $this->commentBuffer = [];
                 } elseif (str_starts_with($line, '%')) {
                     if (str_starts_with($line, '%%')) {
@@ -285,7 +412,7 @@ class ExtractGrid
                     }
                 } elseif (str_starts_with($line, '@')) {
                     $this->parseReference($line);
-                } elseif ($line !== '') {
+                } else {
                     $inHeader = false;
                 }
             }
@@ -293,6 +420,18 @@ class ExtractGrid
         if (count($this->sceneBuffer)) {
             $this->sceneBuffer['comments'] = $this->commentBuffer;
             $this->sceneData[] = $this->sceneBuffer;
+        }
+    }
+
+    /**
+     * Build a table of status names so we can map keys to names in the output.
+     * @return void
+     */
+    private function loadStatus(): void
+    {
+        $this->status = [];
+        foreach ($this->project->settings->status->entry as $entry) {
+            $this->status[(string)$entry['key']] = (string)$entry;
         }
     }
 
@@ -334,6 +473,48 @@ class ExtractGrid
     }
 
     /**
+     * Support replacements in output paths:
+     * The @d [php-format]@ command will inject the current date (default yyyy-mm-dd)
+     * The @z {timezone}@ command selects the timezone (default is UTC). @z must precede @d to work.
+     * @param string $path A string with optional commands
+     * @return string The string after command processing.
+     */
+    private function parsePath(string $path): string
+    {
+        if (preg_match_all('/@[a-z][^@]*?@/i', $path, $matches, PREG_OFFSET_CAPTURE)) {
+            $zone = null;
+            $delta = 0;
+            foreach ($matches[0] as $match) {
+                $length = strlen($match[0]);
+                $instruction = explode(' ', substr($match[0], 1, -1));
+                $command = strtolower(array_shift($instruction));
+                $inject = '';
+                switch ($command) {
+                    case 'd':
+                        $format = count($instruction) ? implode(' ', $instruction) : 'Y-m-d';
+                        try {
+                            $inject = new DateTimeImmutable('now', $zone)
+                                ->format($format);
+                        } catch (DateMalformedStringException) {
+                        }
+                        break;
+                    case 'z':
+                        try {
+                            $zone = new DateTimeZone($instruction[0]);
+                        } catch (Exception) {
+                        }
+                        break;
+                }
+                $start = $match[1] + $delta;
+                $path = substr($path, 0, $start) . $inject
+                    . substr($path, $start + $length);
+                $delta += strlen($inject) - $length;
+            }
+        }
+        return $path;
+    }
+
+    /**
      * Parse an @reference in and save the value. If the value is a list, explode and trim it.
      * @param string $line
      * @return void
@@ -362,21 +543,19 @@ class ExtractGrid
     public function prepareFullSheet(): void
     {
         $this->sheet = $this->spreadsheet->getActiveSheet();
+        $this->sheet->setTitle('Scenes');
 
         // Add and style the headers
         $headers = $this->getHeaders();
         $headerKeys = array_keys($headers);
         $maxColChars = [];
         $col = 1;
-        foreach ($headers as $header) {
-            $this->sheet->setCellValue([$col, 1], $header);
-            $this->sheet->getStyle([$col, 1])->applyFromArray([
-                'font' => ['bold' => true],
-                'alignment' => [
-                    'horizontal' => Alignment::HORIZONTAL_CENTER,
-                    'vertical' => Alignment::VERTICAL_TOP,
-                ],
-            ]);
+        $wordCountCol = 0;
+        foreach ($headers as $key => $header) {
+            if ($key === 'words') {
+                $wordCountCol = $col;
+            }
+            $this->setHeader($this->sheet, $col, $header);
             $maxColChars[$col] = ceil(1.4 * strlen($header));
             ++$col;
         }
@@ -396,6 +575,9 @@ class ExtractGrid
             }
             ++$row;
         }
+        // Save the total word count
+        $this->sheet->setCellValue([$wordCountCol, $row], $this->wordTotal);
+        $this->formatStyle($row, $wordCountCol, 'words');
 
         // Set column widths, save for the last one
         for ($index = 1; $index < count($headers); ++$index) {
@@ -405,6 +587,8 @@ class ExtractGrid
                 );
             }
         }
+        $this->wordCountStyle = self::$styles['words'];
+        $this->prepareWordCounts();
     }
 
     private function prepareSheet(string $formatPath): void
@@ -414,6 +598,7 @@ class ExtractGrid
             throw new Exception("Error reading format file $formatPath\n");
         }
         $this->sheet = $this->spreadsheet->getActiveSheet();
+        $this->sheet->setTitle('Scenes');
 
         // Add and style the headers
         $headers = ['col0'];
@@ -429,15 +614,26 @@ class ExtractGrid
             if ($col === 0) {
                 continue;
             }
-            $this->sheet->setCellValue([$col, 1], $header);
-            $this->sheet->getStyle([$col, 1])->applyFromArray([
-                'font' => ['bold' => true],
-                'alignment' => [
-                    'horizontal' => Alignment::HORIZONTAL_CENTER,
-                    'vertical' => Alignment::VERTICAL_TOP,
-                ],
-            ]);
+            $this->setHeader($this->sheet, $col, $header);
             $maxColChars[$col] = ceil(1.4 * strlen($header));
+        }
+
+        // If there's a word count, determine which column and format it is in
+        $wordCountCol = 0;
+        $this->wordCountStyle = self::$styles['words'];
+        foreach ($formats['columns'] as $index => $column) {
+            if (is_string($column)) {
+                if ($column === 'words') {
+                    $wordCountCol = $index + 1;
+                }
+            } else {
+                if ($column['key'] === 'words') {
+                    $wordCountCol = $index + 1;
+                    if ($column['style'] ?? false) {
+                        $this->wordCountStyle = $column['style'];
+                    }
+                }
+            }
         }
 
         // Now add the data
@@ -447,7 +643,7 @@ class ExtractGrid
         $sequence = 0;
         $row = 2;
         foreach ($this->sceneData as $sceneData) {
-            if ($sceneData['_novel'] !== $lastNovel) {
+            if (($sceneData['_novel'] ?? '') !== $lastNovel) {
                 $sequence = 0;
                 $lastNovel = $sceneData['_novel'];
             }
@@ -473,6 +669,7 @@ class ExtractGrid
                             $this->getSceneData($sceneData, $column);
                             break;
                     }
+                    $this->setCellStyle(['key' => $column]);
                 } elseif (isset($column['test'])) {
                     // Conditional data in this column
                     $included = $criteria->evaluate($column['test'], function ($key) use ($sceneData) {
@@ -528,12 +725,18 @@ class ExtractGrid
                     }
                 }
                 $this->sheet->setCellValue([$col, $row], $this->contentString);
-                $this->formatCell($row, $col, $this->cellStyle);
+                $this->formatCell($this->sheet, $row, $col, $this->cellStyle);
                 $maxColChars[$col] = max($maxColChars[$col], $this->contentLength);
                 ++$col;
             }
             ++$row;
         }
+        // Save the total word count, if there is one
+        if ($wordCountCol) {
+            $this->sheet->setCellValue([$wordCountCol, $row], $this->wordTotal);
+            $this->formatCell($this->sheet, $row, $wordCountCol, $this->wordCountStyle);
+        }
+
 
         // Set column widths
         for ($index = 1; $index <= count($headers); ++$index) {
@@ -542,6 +745,70 @@ class ExtractGrid
                     min($maxColChars[$index], $formats['wrap'] ?? $this->wrapSize)
                 );
             }
+        }
+        if ($formats['wordCounts'] ?? true) {
+            $this->prepareWordCounts();
+        }
+    }
+
+    private function prepareWordCounts(): void
+    {
+        $sheet = $this->spreadsheet->createSheet();
+        $sheet->setTitle('Statistics');
+        $maxStatusChars = 6;
+        foreach (array_keys($this->wordCounts) as $status) {
+            $maxStatusChars = max($maxStatusChars, strlen($status));
+        }
+        $sheet->getColumnDimensionByColumn(1)->setWidth(
+            1.4 * $maxStatusChars
+        );
+        $this->setHeader($sheet, 2, 'Scenes');
+        $this->setHeader($sheet, 5, 'Words');
+        $headerLabels = [
+            '', 'Status', 'Active', 'Inactive', 'Total', 'Active', 'Inactive', 'Total'
+        ];
+        foreach ($headerLabels as $col => $header) {
+            if ($col === 0) {
+                continue;
+            }
+            $this->setHeader($sheet, $col, $header, 2);
+        }
+        ksort($this->wordCounts);
+        $this->wordCounts['Total'] = ['yes' => 0, 'no' => 0, '#yes' => 0, '#no' => 0];
+        foreach ($this->wordCounts as $counts) {
+            $this->wordCounts['Total']['yes'] += $counts['yes'];
+            $this->wordCounts['Total']['no'] += $counts['no'];
+            $this->wordCounts['Total']['#yes'] += $counts['#yes'];
+            $this->wordCounts['Total']['#no'] += $counts['#no'];
+        }
+        $row = 3;
+        $right = $this->wordCountStyle;
+        $bold = $right;
+        $bold['bold'] = true;
+        foreach ($this->wordCounts as $status => $counts) {
+            $col = 0;
+            // Status
+            $sheet->setCellValue([++$col, $row], $status);
+            $this->formatCell($sheet, $row, $col);
+            // Active scene count
+            $sheet->setCellValue([++$col, $row], $counts['#yes']);
+            $this->formatCell($sheet, $row, $col, $right);
+            // Inactive scene count
+            $sheet->setCellValue([++$col, $row], $counts['#no']);
+            $this->formatCell($sheet, $row, $col, $right);
+            // Total scene count
+            $sheet->setCellValue([++$col, $row], $counts['#yes'] + $counts['#no']);
+            $this->formatCell($sheet, $row, $col, $bold);
+            // Active word count
+            $sheet->setCellValue([++$col, $row], $counts['yes']);
+            $this->formatCell($sheet, $row, $col, $right);
+            // Inactive word count
+            $sheet->setCellValue([++$col, $row], $counts['no']);
+            $this->formatCell($sheet, $row, $col, $right);
+            // Total word count
+            $sheet->setCellValue([++$col, $row], $counts['yes'] + $counts['no']);
+            $this->formatCell($sheet, $row, $col, $bold);
+            ++$row;
         }
     }
 
@@ -563,6 +830,18 @@ class ExtractGrid
         $this->cellStyle = $style;
 
         return $this;
+    }
+
+    private function setHeader(Worksheet $sheet, int $col, string $header, $row = 1): void
+    {
+        $sheet->setCellValue([$col, $row], $header);
+        $sheet->getStyle([$col, $row])->applyFromArray([
+            'font' => ['bold' => true],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical' => Alignment::VERTICAL_TOP,
+            ],
+        ]);
     }
 
     /**

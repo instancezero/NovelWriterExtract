@@ -168,5 +168,6 @@
     "words",
     "synopsis"
   ],
+  "wordCounts": true,
   "wrap": 120
 }

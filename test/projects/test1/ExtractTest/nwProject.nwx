@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
-<novelWriterXML appVersion="2.6.3" hexVersion="0x020603f0" fileVersion="1.5" fileRevision="4" timeStamp="2025-04-09 01:43:46">
-  <project id="e2be99af-f9bf-4403-857a-c3d1ac25abea" saveCount="2153" autoCount="281" editTime="114187">
+<novelWriterXML appVersion="2.7.4" hexVersion="0x020704f0" fileVersion="1.5" fileRevision="5" timeStamp="2025-09-08 20:47:30">
+  <project id="e2be99af-f9bf-4403-857a-c3d1ac25abea" saveCount="2156" autoCount="299" editTime="191012">
     <name>Sample Project</name>
     <author>Jane Smith</author>
   </project>
@@ -9,9 +9,9 @@
     <language>en_GB</language>
     <spellChecking auto="yes">None</spellChecking>
     <lastHandle>
-      <entry key="editor">636b6aa9b697b</entry>
+      <entry key="editor">bc0cbd2a407f3</entry>
       <entry key="viewer">636b6aa9b697b</entry>
-      <entry key="novelTree">7031beac91f75</entry>
+      <entry key="novel">7031beac91f75</entry>
       <entry key="outline">7031beac91f75</entry>
     </lastHandle>
     <autoReplace>
@@ -36,7 +36,7 @@
       <entry key="i56be10" count="1" red="220" green="138" blue="221" shape="BLOCK_4">Main</entry>
     </importance>
   </settings>
-  <content items="31" novelWords="1016" notesWords="416">
+  <content items="31" novelWords="1421" notesWords="416" novelChars="7656" notesChars="2285">
     <item handle="7031beac91f75" parent="None" root="7031beac91f75" order="0" type="ROOT" class="NOVEL">
       <meta expanded="yes" />
       <name status="sc24b8f" import="ia857f0">Novel</name>
@@ -58,11 +58,11 @@
       <name status="sf24ce6" import="ia857f0" active="yes">Chapter One</name>
     </item>
     <item handle="636b6aa9b697b" parent="6a2d6d5f4f401" root="7031beac91f75" order="0" type="FILE" class="NOVEL" layout="DOCUMENT">
-      <meta expanded="no" heading="H3" charCount="2999" wordCount="530" paraCount="16" cursorPos="1035" />
+      <meta expanded="no" heading="H3" charCount="2999" wordCount="530" paraCount="16" cursorPos="1260" />
       <name status="s90e6c9" import="ia857f0" active="yes">Making a Scene</name>
     </item>
     <item handle="bc0cbd2a407f3" parent="6a2d6d5f4f401" root="7031beac91f75" order="1" type="FILE" class="NOVEL" layout="DOCUMENT">
-      <meta expanded="no" heading="H3" charCount="548" wordCount="108" paraCount="3" cursorPos="650" />
+      <meta expanded="no" heading="H3" charCount="2602" wordCount="513" paraCount="14" cursorPos="2669" />
       <name status="s90e6c9" import="ia857f0" active="yes">Another Scene</name>
     </item>
     <item handle="ba8a28a246524" parent="7031beac91f75" root="7031beac91f75" order="4" type="FILE" class="NOVEL" layout="DOCUMENT">
@@ -82,7 +82,7 @@
       <name status="sd51c5b" import="ia857f0" active="yes">We Found John!</name>
     </item>
     <item handle="e5e47ebf63b1c" parent="None" root="e5e47ebf63b1c" order="1" type="ROOT" class="NOVEL">
-      <meta expanded="yes" />
+      <meta expanded="no" />
       <name status="sf12341" import="ia857f0">Sequel</name>
     </item>
     <item handle="bacb7059e3083" parent="e5e47ebf63b1c" root="e5e47ebf63b1c" order="0" type="FILE" class="NOVEL" layout="DOCUMENT">

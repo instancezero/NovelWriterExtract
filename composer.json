@@ -1,12 +1,12 @@
 {
-  "name": "jal/novelwriterextract",
-  "description": "description",
+  "name": "instancezero/novelwriterextract",
+  "description": "A tool to extract novelWriter metadata.",
   "minimum-stability": "stable",
   "license": "GPL-3.0-or-later",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "authors": [
     {
-      "name": "jal",
+      "name": "Alan Langford",
       "email": "instance1@gmail.com"
     }
   ],

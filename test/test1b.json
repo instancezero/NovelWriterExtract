@@ -1,0 +1,26 @@
+{
+  "columns": [
+    "_sequence",
+    "name",
+    "_status",
+    {
+      "heading": "Where",
+      "key": "@location",
+      "style": {
+        "align": "center",
+        "onFirst": true
+      }
+    },
+    "goal",
+    {
+      "heading": "Like, Words, man.",
+      "key": "words",
+      "style": {
+        "numberFormat": "#,##0"
+      }
+    },
+    "synopsis"
+  ],
+  "wordCounts": true,
+  "wrap": 120
+}

@@ -1,8 +1,8 @@
 %%~name: Another Scene
 %%~path: 6a2d6d5f4f401/bc0cbd2a407f3
 %%~kind: NOVEL/DOCUMENT
-%%~hash: d35e2629876e627b1a2418affa40d477022984f8
-%%~date: Unknown/2024-03-11 22:56:28
+%%~hash: f1e4dbd8cf1369af91b603feb3b1db1129e71163
+%%~date: Unknown/2025-09-08 11:43:48
 ### Another Scene
 
 @pov: John
@@ -20,3 +20,27 @@ In fact, if you wish, you can add all the scenes in the chapter file too. All no
 @location: Earth
 
 This is a second scene in the same file as the previous scene. You can always split the files up later using the split tool.
+
+Adding more scenes to a chapter is as easy as adding more scene files with a level three heading. You can of course also just add another level three heading in the same file if that works for the way you want to structure your files.
+
+In fact, if you wish, you can add all the scenes in the chapter file too. All novelWriter cares about is the level of the headings and the order in which they appear.
+
+Adding more scenes to a chapter is as easy as adding more scene files with a level three heading. You can of course also just add another level three heading in the same file if that works for the way you want to structure your files.
+
+In fact, if you wish, you can add all the scenes in the chapter file too. All novelWriter cares about is the level of the headings and the order in which they appear.
+
+Adding more scenes to a chapter is as easy as adding more scene files with a level three heading. You can of course also just add another level three heading in the same file if that works for the way you want to structure your files.
+
+In fact, if you wish, you can add all the scenes in the chapter file too. All novelWriter cares about is the level of the headings and the order in which they appear.
+
+Adding more scenes to a chapter is as easy as adding more scene files with a level three heading. You can of course also just add another level three heading in the same file if that works for the way you want to structure your files.
+
+In fact, if you wish, you can add all the scenes in the chapter file too. All novelWriter cares about is the level of the headings and the order in which they appear.
+
+Adding more scenes to a chapter is as easy as adding more scene files with a level three heading. You can of course also just add another level three heading in the same file if that works for the way you want to structure your files.
+
+In fact, if you wish, you can add all the scenes in the chapter file too. All novelWriter cares about is the level of the headings and the order in which they appear.
+
+### An embedded scene
+
+This should test the word count code.
