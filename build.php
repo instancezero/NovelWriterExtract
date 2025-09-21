@@ -1,4 +1,12 @@
 <?php
+$composer = json_decode(file_get_contents(__DIR__ . '\composer.json'), true);
+$version = $composer['version'];
+$good = strtolower(readline("Build version $version? [Y/n]: "));
+if ($good !== '' && $good !== 'y' && $good !== 'yes') {
+    echo "\n";
+    exit;
+}
+
 // Build the PHAR
 echo "Building PHAR.\n";
 exec('C:\tools\php84\php.exe compile.php');
@@ -22,8 +30,6 @@ exec('.\vendor\bin\phpacker build --src=.\bin\novelWriterExtract.phar --dest=.\b
 
 // Rename the executables
 echo "Renaming binaries.\n";
-$composer = json_decode(file_get_contents(__DIR__ . '\composer.json'), true);
-$version = $composer['version'];
 $base = __DIR__ . '/bin';
 if (file_exists("$base/linux/linux-arm")) {
     rename("$base/linux/linux-arm", "$base/linux/novelWriterExtract-$version-arm");
