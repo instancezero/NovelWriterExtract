@@ -18,6 +18,8 @@ and Windows can be found in the bin/ folder.
 
 Basic usage is `novelWriterExtract nw_project_folder output_file [format_file]`
 
+Starting with version 1.2, `novelWriterExtract *` will prompt you for the additional arguments.
+
 Starting with v1.1 The output file supports two formatting commands:
 @z timezone_identifier@ and @d [php-date-format]@
 
@@ -221,6 +223,12 @@ If you don't want to see the word/scene count statistics, they can be disabled i
 ```
 
 ## Release Notes
+
+### 1.2.0 2025-09-20
+
+- Improved the output when there are insufficient arguments on the command line.
+- If * is supplied as the first argument, the program will prompt for arguments. 
+- Fixed a bug that was generating messy warnings.
 
 ### 1.1.0 2025-09-09
 

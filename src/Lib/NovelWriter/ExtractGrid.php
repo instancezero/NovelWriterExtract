@@ -124,6 +124,31 @@ class ExtractGrid
     protected int $wordTotal;
     protected int $wrapSize = 40;
 
+    public function checkProject(): bool
+    {
+        if (!isset($this->sourcePath)) {
+            echo "Project path is not set.\n";
+            return false;
+        }
+        if (!file_exists("$this->sourcePath/nwProject.nwx")) {
+            echo "Path does not contain a novelWriter project.\n";
+            return false;
+        }
+        return true;
+    }
+
+    public function checkOutputPath(string $path): array
+    {
+        $resolved = $this->parsePath($path);
+        try {
+            $this->getWriterType($resolved);
+            $result = [true, $resolved];
+        } catch (Exception) {
+            $result = [false, "Unrecognized file extension."];
+        }
+        return $result;
+    }
+
     /**
      * Get a word count by scene without counting headers, comments, etc.
      * @param array $markdown
@@ -185,14 +210,7 @@ class ExtractGrid
             } else {
                 $this->prepareSheet($format);
             }
-            $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
-            $typeMap =match ($ext) {
-                'csv' => IOFactory::WRITER_CSV,
-                'html' => IOFactory::WRITER_HTML,
-                'ods' => IOFactory::WRITER_ODS,
-                'xlsx' => IOFactory::WRITER_XLSX,
-                default => throw new Exception("Unsupported file type: $ext"),
-            };
+            $typeMap = $this->getWriterType($path);
             $this->spreadsheet->setActiveSheetIndex(0);
             $writer = IOFactory::createWriter($this->spreadsheet, $typeMap);
             if ($writer instanceof HtmlWriter) {
@@ -304,6 +322,23 @@ class ExtractGrid
             $style = self::$styles['*'];
         }
         return $style;
+    }
+
+    /**
+     * @param string $path
+     * @return string
+     * @throws Exception
+     */
+    private function getWriterType(string $path): string
+    {
+        $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+        return match ($ext) {
+            'csv' => IOFactory::WRITER_CSV,
+            'html' => IOFactory::WRITER_HTML,
+            'ods' => IOFactory::WRITER_ODS,
+            'xlsx' => IOFactory::WRITER_XLSX,
+            default => throw new Exception("Unsupported file type: $ext"),
+        };
     }
 
     private function isScene(string $line): bool
@@ -627,7 +662,7 @@ class ExtractGrid
                     $wordCountCol = $index + 1;
                 }
             } else {
-                if ($column['key'] === 'words') {
+                if (($column['key'] ?? false) === 'words') {
                     $wordCountCol = $index + 1;
                     if ($column['style'] ?? false) {
                         $this->wordCountStyle = $column['style'];
