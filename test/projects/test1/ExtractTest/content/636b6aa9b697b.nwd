@@ -1,8 +1,8 @@
 %%~name: Making a Scene
 %%~path: 6a2d6d5f4f401/636b6aa9b697b
 %%~kind: NOVEL/DOCUMENT
-%%~hash: e290dfedc496152cf5c5edd20e5ca8bb109630fb
-%%~date: Unknown/2025-04-21 21:19:47
+%%~hash: 4a7b3e9a3667c96f9f54a001674de2264f8778b6
+%%~date: Unknown/2025-10-23 12:33:19
 ### Making a Scene
 
 @pov: Jane
@@ -15,6 +15,7 @@
 %story.pace: slow, informative
 %story.incite: Someone installed novelWriter and opened the sample project
 %story.complication: Has previously used other software and is disoriented by the interface
+%story.complication: A new update allows duplicate tags of the same name
 %story.turning: Realizes that Markdown syntax is actually very easy to understand and use.
 %story.crisis: Fears the reader needs to learn a completely new language, “Markdown”
 %story.climax: 

@@ -224,6 +224,12 @@ If you don't want to see the word/scene count statistics, they can be disabled i
 
 ## Release Notes
 
+### 1.2.1 2025-10-23
+
+- novelWriter 2.8 will support repeated named comments (eg. synopsis and the story tags),
+separating multiple occurrences with two line feeds. This update supports that behaviour
+  (previously a repeated comment would overwrite any earlier ones.)
+
 ### 1.2.0 2025-09-20
 
 - Improved the output when there are insufficient arguments on the command line.

@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
-<novelWriterXML appVersion="2.7.4" hexVersion="0x020704f0" fileVersion="1.5" fileRevision="5" timeStamp="2025-09-08 20:47:30">
-  <project id="e2be99af-f9bf-4403-857a-c3d1ac25abea" saveCount="2156" autoCount="299" editTime="191012">
+<novelWriterXML appVersion="2.7.4" hexVersion="0x020704f0" fileVersion="1.5" fileRevision="5" timeStamp="2025-10-23 12:44:39">
+  <project id="e2be99af-f9bf-4403-857a-c3d1ac25abea" saveCount="2157" autoCount="303" editTime="191892">
     <name>Sample Project</name>
     <author>Jane Smith</author>
   </project>
@@ -9,7 +9,7 @@
     <language>en_GB</language>
     <spellChecking auto="yes">None</spellChecking>
     <lastHandle>
-      <entry key="editor">bc0cbd2a407f3</entry>
+      <entry key="editor">636b6aa9b697b</entry>
       <entry key="viewer">636b6aa9b697b</entry>
       <entry key="novel">7031beac91f75</entry>
       <entry key="outline">7031beac91f75</entry>
@@ -58,11 +58,11 @@
       <name status="sf24ce6" import="ia857f0" active="yes">Chapter One</name>
     </item>
     <item handle="636b6aa9b697b" parent="6a2d6d5f4f401" root="7031beac91f75" order="0" type="FILE" class="NOVEL" layout="DOCUMENT">
-      <meta expanded="no" heading="H3" charCount="2999" wordCount="530" paraCount="16" cursorPos="1260" />
+      <meta expanded="no" heading="H3" charCount="2999" wordCount="530" paraCount="16" cursorPos="388" />
       <name status="s90e6c9" import="ia857f0" active="yes">Making a Scene</name>
     </item>
     <item handle="bc0cbd2a407f3" parent="6a2d6d5f4f401" root="7031beac91f75" order="1" type="FILE" class="NOVEL" layout="DOCUMENT">
-      <meta expanded="no" heading="H3" charCount="2602" wordCount="513" paraCount="14" cursorPos="2669" />
+      <meta expanded="no" heading="H3" charCount="2602" wordCount="513" paraCount="14" cursorPos="63" />
       <name status="s90e6c9" import="ia857f0" active="yes">Another Scene</name>
     </item>
     <item handle="ba8a28a246524" parent="7031beac91f75" root="7031beac91f75" order="4" type="FILE" class="NOVEL" layout="DOCUMENT">

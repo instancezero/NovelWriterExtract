@@ -37,7 +37,7 @@
         "story.duration": "5m",
         "story.pace": "slow, informative",
         "story.incite": "Someone installed novelWriter and opened the sample project",
-        "story.complication": "Has previously used other software and is disoriented by the interface",
+        "story.complication": "A new update allows duplicate tags of the same name",
         "story.turning": "Realizes that Markdown syntax is actually very easy to understand and use.",
         "story.crisis": "Fears the reader needs to learn a completely new language, \u201cMarkdown\u201d",
         "story.resolution": "Axniety about learning a new thing has been addressed.",
@@ -48,10 +48,10 @@
         "story.emotions": "bewilderment, fear."
       },
       "T0002": {
-        "meta": {"level": "H4", "title": "Some Section Here", "line": 46, "tag": "", "counts": [432, 80, 2]}
+        "meta": {"level": "H4", "title": "Some Section Here", "line": 47, "tag": "", "counts": [432, 80, 2]}
       },
       "T0003": {
-        "meta": {"level": "H4", "title": "Text Alignment and Indentation", "line": 52, "tag": "", "counts": [580, 107, 6]}
+        "meta": {"level": "H4", "title": "Text Alignment and Indentation", "line": 53, "tag": "", "counts": [580, 107, 6]}
       },
       "document": {
         "footnotes": ["f4xr5"]
@@ -60,14 +60,15 @@
     "bc0cbd2a407f3": {
       "T0001": {
         "meta": {"level": "H3", "title": "Another Scene", "line": 1, "tag": "", "counts": [413, 81, 2]},
-        "refs": {"john": "@pov", "jane": "@focus", "earth": "@location"}
+        "refs": {"john": "@pov", "jane": "@focus", "earth": "@location"},
+        "summary": "This is the second bit"
       },
       "T0002": {
-        "meta": {"level": "H3", "title": "More Scenes", "line": 11, "tag": "", "counts": [2135, 422, 11]},
+        "meta": {"level": "H3", "title": "More Scenes", "line": 14, "tag": "", "counts": [2135, 422, 11]},
         "refs": {"jane": "@pov", "john": "@focus", "earth": "@location"}
       },
       "T0003": {
-        "meta": {"level": "H3", "title": "An embedded scene", "line": 39, "tag": "", "counts": [54, 10, 1]}
+        "meta": {"level": "H3", "title": "An embedded scene", "line": 42, "tag": "", "counts": [54, 10, 1]}
       }
     },
     "ba8a28a246524": {

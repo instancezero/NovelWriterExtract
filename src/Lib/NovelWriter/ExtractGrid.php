@@ -300,7 +300,7 @@ class ExtractGrid
             foreach ($data as $item) {
                 $this->contentLength = max($this->contentLength, strlen($item));
             }
-            $this->contentString = implode("\n", $data);
+            $this->contentString = implode("\n\n", $data);
         } else {
             $this->contentString = preg_replace('!\s+!', ' ', $data);
             $this->contentLength = strlen($this->contentString);
@@ -485,7 +485,8 @@ class ExtractGrid
             || str_starts_with($command, 'short')
         ) {
             if (count($parts) > 1) {
-                $this->sceneBuffer['synopsis'] = trim($parts[1]);
+                $this->sceneBuffer['synopsis'] ??= [];
+                $this->sceneBuffer['synopsis'][] = trim($parts[1]);
                 $this->inUse['synopsis'] = true;
             }
         } elseif (str_starts_with($command, self::STRUCTURE_KEYWORD . '.')) {
@@ -496,7 +497,8 @@ class ExtractGrid
                 $term = trim($subParts[1]);
                 $note = count($parts) > 1 ? trim($parts[1]) : '';
                 if ($note !== '') {
-                    $this->sceneBuffer[$term] = trim($parts[1]);
+                    $this->sceneBuffer[$term] ??= [];
+                    $this->sceneBuffer[$term][] = trim($parts[1]);
                     $this->inUse[$term] = true;
                 }
             }
