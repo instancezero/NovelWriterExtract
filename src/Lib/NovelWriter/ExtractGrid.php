@@ -300,7 +300,8 @@ class ExtractGrid
             foreach ($data as $item) {
                 $this->contentLength = max($this->contentLength, strlen($item));
             }
-            $this->contentString = implode("\n\n", $data);
+            $delimiter = ($column[0] === '@') ? "\n" : "\n\n";
+            $this->contentString = implode($delimiter, $data);
         } else {
             $this->contentString = preg_replace('!\s+!', ' ', $data);
             $this->contentLength = strlen($this->contentString);

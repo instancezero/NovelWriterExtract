@@ -1,4 +1,8 @@
 {
+  "novelWriter.meta": {
+    "version": "0x020800b1",
+    "timestamp": "2025-11-02 23:07:12"
+  },
   "novelWriter.tagsIndex": {
     "john": {"name": "John", "display": "John Smith", "handle": "14298de4d9524", "heading": "T0001", "class": "CHARACTER"},
     "jane": {"name": "Jane", "display": "Jane Smith", "handle": "bb2c23b3c42cc", "heading": "T0001", "class": "CHARACTER"},

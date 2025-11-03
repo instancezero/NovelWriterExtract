@@ -34,8 +34,8 @@ $base = __DIR__ . '/bin';
 if (file_exists("$base/linux/linux-arm")) {
     rename("$base/linux/linux-arm", "$base/linux/novelWriterExtract-$version-arm");
     rename("$base/linux/linux-x64", "$base/linux/novelWriterExtract-$version-x64");
-    rename("$base/mac/mac-arm", "$base/mac/novelWriterExtract-$version-arm");
-    rename("$base/mac/mac-x64", "$base/mac/novelWriterExtract-$version-x64");
+    rename("$base/mac/mac-arm", "$base/mac/novelWriterExtract-$version-mac-arm");
+    rename("$base/mac/mac-x64", "$base/mac/novelWriterExtract-$version-mac-x64");
     rename("$base/windows/windows-x64.exe", "$base/windows/novelWriterExtract-$version-x64.exe");
 } else {
     echo "No binaries found.\n";

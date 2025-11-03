@@ -224,6 +224,11 @@ If you don't want to see the word/scene count statistics, they can be disabled i
 
 ## Release Notes
 
+### 1.2.2 2025-11-02
+
+- Repeated references were also being separated by double line feeds. 
+This update uses a single line feed for references, two for synopsis/story comments.
+
 ### 1.2.1 2025-10-23
 
 - novelWriter 2.8 will support repeated named comments (eg. synopsis and the story tags),
