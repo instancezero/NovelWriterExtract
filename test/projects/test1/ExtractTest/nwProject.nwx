@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
-<novelWriterXML appVersion="2.8b1" hexVersion="0x020800b1" fileVersion="1.5" fileRevision="6" timeStamp="2025-11-02 23:07:12">
-  <project id="e2be99af-f9bf-4403-857a-c3d1ac25abea" saveCount="2168" autoCount="306" editTime="192533">
+<novelWriterXML appVersion="2.8b1" hexVersion="0x020800b1" fileVersion="1.5" fileRevision="6" timeStamp="2025-11-22 12:35:09">
+  <project id="e2be99af-f9bf-4403-857a-c3d1ac25abea" saveCount="2175" autoCount="316" editTime="231952">
     <name>Sample Project</name>
     <author>Jane Smith</author>
   </project>
@@ -9,7 +9,7 @@
     <language>en_GB</language>
     <spellChecking auto="yes">None</spellChecking>
     <lastHandle>
-      <entry key="editor">636b6aa9b697b</entry>
+      <entry key="editor">bb2c23b3c42cc</entry>
       <entry key="viewer">636b6aa9b697b</entry>
       <entry key="novel">7031beac91f75</entry>
       <entry key="outline">7031beac91f75</entry>
@@ -82,7 +82,7 @@
       <name status="sd51c5b" import="ia857f0" active="yes">We Found John!</name>
     </item>
     <item handle="e5e47ebf63b1c" parent="None" root="e5e47ebf63b1c" order="1" type="ROOT" class="NOVEL">
-      <meta expanded="no" />
+      <meta expanded="yes" />
       <name status="sf12341" import="ia857f0">Sequel</name>
     </item>
     <item handle="bacb7059e3083" parent="e5e47ebf63b1c" root="e5e47ebf63b1c" order="0" type="FILE" class="NOVEL" layout="DOCUMENT">
@@ -102,11 +102,11 @@
       <name status="sf12341" import="ia857f0">Main Characters</name>
     </item>
     <item handle="14298de4d9524" parent="f7e2d9f330615" root="f6622b4617424" order="0" type="FILE" class="CHARACTER" layout="NOTE">
-      <meta expanded="no" heading="H1" charCount="49" wordCount="9" paraCount="1" cursorPos="23" />
+      <meta expanded="no" heading="H1" charCount="49" wordCount="9" paraCount="1" cursorPos="125" />
       <name status="sf12341" import="i2d7a54" active="yes">John Smith</name>
     </item>
     <item handle="bb2c23b3c42cc" parent="f7e2d9f330615" root="f6622b4617424" order="1" type="FILE" class="CHARACTER" layout="NOTE">
-      <meta expanded="no" heading="H1" charCount="55" wordCount="9" paraCount="1" cursorPos="31" />
+      <meta expanded="no" heading="H1" charCount="55" wordCount="9" paraCount="1" cursorPos="125" />
       <name status="sf12341" import="i56be10" active="yes">Jane Smith</name>
     </item>
     <item handle="15c4492bd5107" parent="None" root="15c4492bd5107" order="3" type="ROOT" class="WORLD">
@@ -114,7 +114,7 @@
       <name status="sf12341" import="ia857f0">Locations</name>
     </item>
     <item handle="b3e74dbc1f584" parent="15c4492bd5107" root="15c4492bd5107" order="0" type="FILE" class="WORLD" layout="NOTE">
-      <meta expanded="no" heading="H1" charCount="76" wordCount="15" paraCount="1" cursorPos="111" />
+      <meta expanded="no" heading="H1" charCount="76" wordCount="15" paraCount="1" cursorPos="26" />
       <name status="sf12341" import="i2d7a54" active="yes">Earth</name>
     </item>
     <item handle="f1471bef9f2ae" parent="15c4492bd5107" root="15c4492bd5107" order="1" type="FILE" class="WORLD" layout="NOTE">

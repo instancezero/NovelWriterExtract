@@ -1,4 +1,5 @@
 {
+  "characters": true,
   "columns": [
     "_sequence",
     "name",

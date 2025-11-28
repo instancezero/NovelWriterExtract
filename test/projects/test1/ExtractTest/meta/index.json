@@ -1,14 +1,14 @@
 {
   "novelWriter.meta": {
     "version": "0x020800b1",
-    "timestamp": "2025-11-02 23:07:12"
+    "timestamp": "2025-11-22 12:35:09"
   },
   "novelWriter.tagsIndex": {
     "john": {"name": "John", "display": "John Smith", "handle": "14298de4d9524", "heading": "T0001", "class": "CHARACTER"},
     "jane": {"name": "Jane", "display": "Jane Smith", "handle": "bb2c23b3c42cc", "heading": "T0001", "class": "CHARACTER"},
-    "earth": {"name": "Earth", "display": "Earth", "handle": "b3e74dbc1f584", "heading": "T0001", "class": "WORLD"},
     "space": {"name": "Space", "display": "Space", "handle": "f1471bef9f2ae", "heading": "T0001", "class": "WORLD"},
-    "mars": {"name": "Mars", "display": "Mars", "handle": "5eaea4e8cdee8", "heading": "T0001", "class": "WORLD"}
+    "mars": {"name": "Mars", "display": "Mars", "handle": "5eaea4e8cdee8", "heading": "T0001", "class": "WORLD"},
+    "freemanhome": {"name": "FreemanHome", "display": "FreemanHome", "handle": "b3e74dbc1f584", "heading": "T0001", "class": "WORLD"}
   },
   "novelWriter.itemIndex": {
     "53b69b83cdafc": {
@@ -130,18 +130,26 @@
     "14298de4d9524": {
       "T0001": {
         "meta": {"level": "H1", "title": "John Smith", "line": 1, "tag": "john", "counts": [49, 9, 1]},
-        "summary": "The sidekick"
+        "summary": "The sidekick",
+        "story.given": "John",
+        "story.surname": "Smith",
+        "story.pronouns": "he/him",
+        "story.fate": "Happy farmer"
       }
     },
     "bb2c23b3c42cc": {
       "T0001": {
         "meta": {"level": "H1", "title": "Jane Smith", "line": 1, "tag": "jane", "counts": [55, 9, 1]},
-        "summary": "The heroine"
+        "summary": "The heroine",
+        "story.given": "Jane",
+        "story.surname": "Smith",
+        "story.pronouns": "she/her",
+        "story.fate": "Finds John"
       }
     },
     "b3e74dbc1f584": {
       "T0001": {
-        "meta": {"level": "H1", "title": "Earth", "line": 1, "tag": "earth", "counts": [76, 15, 1]},
+        "meta": {"level": "H1", "title": "Earth", "line": 1, "tag": "freemanhome", "counts": [76, 15, 1]},
         "refs": {"space": "@location"}
       }
     },

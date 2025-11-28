@@ -13,6 +13,9 @@ The data can be exported as a comma-separated (CSV), OpenDocument Spreadsheet (O
 Hypertext (HTML), or Excel (XLXS) format.
 The format is determined by the extension of the output file.
 
+**Note**: if the output file format is CSV, 
+only scenes will be written since CSV files don't support multiple sheets.
+
 Stand-alone binaries with no dependencies for linux, Mac,
 and Windows can be found in the bin/ folder.
 
@@ -64,16 +67,48 @@ The overall format syntax is:
 
 ```json
 {
-  "columns": [
+  "characters": true, // Column array or boolean
+  "locations": true,  // Column array or boolean
+  "scenes": [
     "column1","column2","..."
   ],
-  "wrap": integer
+  "wordCounts": true, // Boolean
+  "wrap": 40          // Integer
 }
 ```
 
-A column definition can be either the name of a %story term or the name of an @ reference
-in NovelWriter.
-Additional column names are:
+A column definition can be either the name of a %story term
+or the name of an @ reference in NovelWriter.
+
+### Characters
+
+Default character columns are:
+
+* _sequence: a sequential character number.
+* name: The name of the note that contains the character information.
+* tag: text from the @tag directive.
+* folder: the name of the folder the character is located in.
+* given: text from a %story.given directive
+* surname: text from a %story.surname directive
+* fate:  text from a %story.fate directive
+* synopsis: text from the character's %synopsis or %story directive.
+
+Custom %story columns can also be defined.
+
+### Locations
+
+Default location columns are:
+
+* _sequence: a sequential character number.
+* name: The name of the note that contains the character information.
+* tag: text from the @tag directive.
+* synopsis: text from the character's %synopsis or %story directive.
+
+Custom %story columns can also be displayed.
+
+### Scenes
+
+Besides the @ tags and %story terms, these column names are available:
 
 * _active: The value of the active column in the document tree (yes/no).
 * _blank: an empty column.
@@ -89,7 +124,7 @@ A simple format file could look like this:
 
 ```json
 {
-  "columns": [
+  "scenes": [
     "_sequence", "name", "@location", "@char", "synopsis", "words"
   ]
 }
@@ -98,7 +133,7 @@ But columns can do much more. You can change the column heading from the default
 
 ```json
 {
-  "columns": [
+  "scenes": [
     {
       "key": "@custom",
       "heading": "Additional References"
@@ -111,7 +146,7 @@ For formats other than CSV, you can change the column alignment, number format,
 and highlight cells that contain the first mention of a value with the "onFirst" attribute:
 ```json
 {
-  "columns": [
+  "scenes": [
     {
       "key": "@char",
       "style": {
@@ -136,7 +171,7 @@ You can break any attribute with a specific value into a new column,
 and highlight the first time the value appears, as in this example with locations:
 ```json
 {
-  "columns": [
+  "scenes": [
     {
       "heading": "Europe",
       "key": "@location",
@@ -167,7 +202,7 @@ You can break your main characters into separate columns
 and create a column for secondary characters:
 ```json
 {
-  "columns": [
+  "scenes": [
     {
       "heading": "Hero",
       "test": [
@@ -214,7 +249,15 @@ and create a column for secondary characters:
 }
 ```
 
-If you don't want to see the word/scene count statistics, they can be disabled in the JSON format
+### Word Counts
+
+Wordcounts produces a sheet with statistics on the novel's scenes.
+The sheet columns tally word counts and lists the number of scenes,
+broken down by active, inactive, and total.
+The rows list this data by scene status with totals at the bottom.
+
+If you don't want to see the word/scene count statistics,
+they can be disabled in the JSON format specification.
 ```json
 {
   "wordCounts": false
@@ -223,6 +266,13 @@ If you don't want to see the word/scene count statistics, they can be disabled i
 ```
 
 ## Release Notes
+
+### 1.3.0 2025-11-28
+
+- Added capability to extract characters and locations
+- Improved column width estimation
+- Major code re-work under the hood.
+- "columns" element renamed to "scenes". "columns" is still recognized for backwards compatibility.
 
 ### 1.2.2 2025-11-02
 

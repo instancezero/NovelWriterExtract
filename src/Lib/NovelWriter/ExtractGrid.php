@@ -30,75 +30,164 @@ class ExtractGrid
      * @var array|mixed
      */
     protected array $cellStyle;
-    protected array $commentBuffer;
     /**
-     * @var int|mixed
+     * @var array|string[] Attributes associated with character nodes
      */
-    protected int $contentLength;
+    static protected array $characterAttributes = [
+        '_sequence',
+        'name',
+        '@tag',
+        '_folder',
+        'given',
+        'surname',
+        'pronouns',
+        'fate',
+        'synopsis',
+    ];
+    protected array $characterData = [];
+    protected array $characterFiles = [];
+    protected array $commentBuffer;
     protected array $contentList;
     /**
      * @var array|mixed|string|string[]|null
      */
     protected string $contentString;
-    static protected array $headings = [
-        '_blank' => '',
+    /**
+     * @var float
+     */
+    protected float $contentWidth;
+    protected mixed $formats;
+    /**
+     * @var array|string[] Default column headers for all fields.
+     */
+    static protected array $headerText = [
+        '@char' => 'Characters',
+        '@custom' => 'Custom',
+        '@entity' => 'Entities',
+        '@focus' => 'Focus Character',
+        '@location' => 'Location(s)',
+        '@mention' => 'Mentions',
+        '@object' => 'Objects',
+        '@plot' => 'Plot',
+        '@pov' => 'Point of View',
+        '@story' => 'References',
+        '@tag' => 'Tag',
+        '@timeline' => 'Timelines',
+        '_active' => 'Active',
+        '_folder' => 'Folder',
         '_novel' => 'Novel',
         '_sequence' => '#',
-        '_active' => 'Active',
-        'name' => 'Scene',
-        'words' => 'Words',
         '_status' => 'Status',
-        'synopsis' => 'Synopsis',
-        'value' => 'Value Shift',
-        'polarity' => 'Polarity Shift',
-        'purpose' => 'Purpose',
-        'incite' => 'Inciting Incident',
-        'goal' => 'Goal',
-        'complication' => 'Complication(s)',
-        'turning' => 'Turning Point',
-        'crisis' => 'Crisis',
+        'about' => 'This Scene is About',
+        'appearance' => 'Appearance',
+        'aural' => 'Environmental Sounds',
         'climax' => 'Climax',
-        'resolution' => '(Non-)Resolution',
-        'about' => 'What is this scene about?',
+        'clothing' => 'Clothing',
+        'comments' => 'Additional Notes',
+        'complication' => 'Complication(s)',
+        'crisis' => 'Crisis',
+        'duration' => 'Duration',
+        'emotions' => 'Emotions',
+        'fate' => 'Fate',
+        'given' => 'Given',
+        'goal' => 'Goal',
         'impact' => 'Impact of the scene',
-        '@pov' => 'Point of View',
-        '@plot' => 'Plot',
+        'incite' => 'Inciting Incident',
+        'name' => 'Name',
+        'others' => 'Off-stage Characters',
+        'pace' => 'Pace',
+        'polarity' => 'Polarity Shift',
+        'pronouns' => 'Pronouns',
+        'prose' => 'Prose Quality/Cadence',
+        'purpose' => 'Purpose',
+        'resolution' => '(Non-)Resolution',
+        'smell' => 'Environmental Smells',
+        'surname' => 'Surname',
+        'synopsis' => 'Synopsis',
         'time' => 'Period/Time',
         'tod' => 'Time of Day',
-        'duration' => 'Duration',
-        '@location' => 'Location(s)',
-        '@timeline' => 'Timelines',
-        '@focus' => 'Focus Character',
-        '@char' => 'Characters',
-        'others' => 'Off-stage Characters',
-        '@entity' => 'Entities',
-        '@object' => 'Objects',
-        '@custom' => 'Custom',
-        '@mention' => 'Mentions',
-        '@story' => 'References',
-        'pace' => 'Pace',
-        'weather' => 'What is the weather?',
-        'appearance' => 'What does it look like?',
-        'touch' => 'What do the materials feel like?',
-        'aural' => 'What are the sounds?',
-        'smell' => 'What are the smells?',
-        'clothing' => 'What are the characters wearing?',
-        'prose' => 'Quality/cadence in the prose',
-        'emotions' => 'What are the characters feeling emotionally?',
-        'comments' => 'Additional Notes',
+        'touch' => 'Tactile',
+        'turning' => 'Turning Point',
+        'value' => 'Value Shift',
+        'weather' => 'Weather',
+        'words' => 'Words',
     ];
     protected array $inUse = [];
-
+    /**
+     * @var array|string[] Attributes associated with character nodes
+     */
+    static protected array $locationAttributes = [
+        '_sequence',
+        'name',
+        '@tag',
+        '_folder',
+        'synopsis',
+    ];
+    protected array $locationData;
+    protected array $locationFiles;
+    /**
+     * @var array|float[]
+     */
+    protected array $maxColChars;
     /**
      * @var false|mixed
      */
     protected bool $onFirst;
     protected SimpleXMLElement $project;
+    /**
+     * @var array|string[] Attributes associated with scene nodes
+     */
+    static protected array $sceneAttributes = [
+        '_novel',
+        '_sequence',
+        '_active',
+        'name',
+        'words',
+        '_status',
+        'synopsis',
+        'value',
+        'polarity',
+        'purpose',
+        'incite',
+        'goal',
+        'complication',
+        'turning',
+        'crisis',
+        'climax',
+        'resolution',
+        'about',
+        'impact',
+        '@pov',
+        '@plot',
+        'time',
+        'tod',
+        'duration',
+        '@location',
+        '@timeline',
+        '@focus',
+        '@char',
+        'others',
+        '@entity',
+        '@object',
+        '@custom',
+        '@mention',
+        '@story',
+        'pace',
+        'weather',
+        'appearance',
+        'touch',
+        'aural',
+        'smell',
+        'clothing',
+        'prose',
+        'emotions',
+        'comments',
+    ];
     protected array $sceneBuffer;
     protected array $sceneData = [];
     protected array $sceneFiles = [];
     protected array $seen = [];
-    protected Worksheet $sheet;
+    private $sheetIndex = 0;
     protected string $sourcePath;
     protected Spreadsheet $spreadsheet;
     /**
@@ -108,8 +197,10 @@ class ExtractGrid
     static protected array $styles = [
         '*' => ['align' => Alignment::HORIZONTAL_GENERAL, 'onFirst' => false, 'wrap' => true],
         '@' => ['align' => Alignment::HORIZONTAL_CENTER, 'onFirst' => true, 'wrap' => true],
+        '@tag' => ['align' => Alignment::HORIZONTAL_CENTER, 'onFirst' => false, 'wrap' => true],
         'comments' => ['align' => Alignment::HORIZONTAL_LEFT, 'wrap' => false],
         'duration' => ['align' => Alignment::HORIZONTAL_RIGHT],
+        'pronouns' => ['align' => Alignment::HORIZONTAL_CENTER, 'onFirst' => false, 'wrap' => true],
         'time' => ['align' => Alignment::HORIZONTAL_LEFT],
         'words' => [
             'align' => Alignment::HORIZONTAL_RIGHT,
@@ -124,6 +215,18 @@ class ExtractGrid
     protected int $wordTotal;
     protected int $wrapSize = 40;
 
+    public function checkOutputPath(string $path): array
+    {
+        $resolved = $this->parsePath($path);
+        try {
+            $this->getWriterType($resolved);
+            $result = [true, $resolved];
+        } catch (Exception) {
+            $result = [false, "Unrecognized file extension."];
+        }
+        return $result;
+    }
+
     public function checkProject(): bool
     {
         if (!isset($this->sourcePath)) {
@@ -135,18 +238,6 @@ class ExtractGrid
             return false;
         }
         return true;
-    }
-
-    public function checkOutputPath(string $path): array
-    {
-        $resolved = $this->parsePath($path);
-        try {
-            $this->getWriterType($resolved);
-            $result = [true, $resolved];
-        } catch (Exception) {
-            $result = [false, "Unrecognized file extension."];
-        }
-        return $result;
     }
 
     /**
@@ -189,6 +280,22 @@ class ExtractGrid
     }
 
     /**
+     * Crudely estimate the column space required for a string.
+     * @param string $text
+     * @return float
+     */
+    private function estimateWidth(string $text): float
+    {
+        // Get rid of anything that's not a "wide" character.
+        $wide = 0.6 * strlen(preg_replace('/[^mwA-HJ-LNP-VXZ0-9]/', '', $text));
+        // Same with "wider"
+        $wider = 0.8 * strlen(preg_replace('/[^MOQW]/', '', $text));
+        // Same with "narrower"
+        $narrower = 0.6 * strlen(preg_replace('/[^ilI|)(}{ !\'`]/', '', $text));
+        return 1.05 * strlen($text) + $wide + $wider - $narrower;
+    }
+
+    /**
      * Write the scene data to the specified path
      * @param string $path
      * @param string $format
@@ -203,13 +310,12 @@ class ExtractGrid
             return;
         }
         try {
+            $this->loadCharacters();
+            $this->loadLocations();
             $this->loadScenes();
             $this->spreadsheet = new Spreadsheet();
-            if ($format === '') {
-                $this->prepareFullSheet();
-            } else {
-                $this->prepareSheet($format);
-            }
+            $this->sheetIndex = 0;
+            $this->prepareSheets($format);
             $typeMap = $this->getWriterType($path);
             $this->spreadsheet->setActiveSheetIndex(0);
             $writer = IOFactory::createWriter($this->spreadsheet, $typeMap);
@@ -222,6 +328,20 @@ class ExtractGrid
         } catch (Exception $exception) {
             echo $exception->getMessage();
             return;
+        }
+    }
+
+    private function flagFirst(string $key)
+    {
+        if ($this->cellStyle['onFirst'] ?? false) {
+            $this->seen[$key] ??= [];
+            foreach ($this->contentList as $newValue) {
+                if (!in_array($newValue, $this->seen[$key])) {
+                    $this->seen[$key][] = $newValue;
+                    $this->cellStyle['bold'] = true;
+                    $this->contentWidth = $this->contentWidth * 1.2;
+                }
+            }
         }
     }
 
@@ -248,63 +368,51 @@ class ExtractGrid
         $sheet->getStyle([$col, $row])->applyFromArray($style);
     }
 
-    private function formatStyle(int $row, int $col, string $key): void
-    {
-        $this->formatCell($this->sheet, $row, $col, $this->getStyle($key));
-        /*
-        $style = $this->getStyle($key);
-        $this->sheet->getStyle([$col, $row])->applyFromArray([
-            'alignment' => [
-                'horizontal' => $style['align'] ?? Alignment::HORIZONTAL_GENERAL,
-                'vertical' => Alignment::VERTICAL_TOP,
-                'wrapText' => $style['wrap'] ?? true,
-            ],
-        ]);
-        */
-    }
-
     /**
-     * Get headings for each column that's in use.
-     *
-     * @return array|string[]
+     * Prepare an array of header texts from a list of column keys (adds col0 so the indexed from 1)
+     * @param array $columns
+     * @return string[]
      */
-    private function getHeaders(): array
+    private function getHeaders(array $columns): array
     {
-        $liveHeadings = self::$headings;
-        foreach ($liveHeadings as $key => $heading) {
-            if (!isset($this->inUse[$key])) {
-                unset($liveHeadings[$key]);
+        $headers = [];
+        foreach ($columns as $column) {
+            if (is_array($column) && ($column['heading'] ?? false)) {
+                $headers[] = $column['heading'];
+            } elseif (is_string($column)) {
+                if ((self::$headerText[$column] ?? false)) {
+                    $headers[] = self::$headerText[$column];
+                } else {
+                    $headers[] = ucfirst($column);
+                }
+            } else {
+                $headers[] = '????';
             }
         }
-        foreach (array_keys($this->inUse) as $key) {
-            if (!isset($liveHeadings[$key])) {
-                $liveHeadings[$key] = ucfirst($key);
-            }
-        }
-        return $liveHeadings;
+        return $headers;
     }
 
     /**
      * Convert this scene data into a string, save the string in the contentString
-     * and contentLength properties.
+     * and contentWidth properties.
      * @param array $sceneData
      * @param string $column
      * @return void
      */
-    private function getSceneData(array $sceneData, string $column): void
+    private function getNodeData(array $sceneData, string $column): void
     {
-        $data = $sceneData[$column] ?? '';
-        if (is_array($data)) {
-            $this->contentLength = 0;
-            $this->contentList = $data;
-            foreach ($data as $item) {
-                $this->contentLength = max($this->contentLength, strlen($item));
+        $node = $sceneData[$column] ?? '';
+        if (is_array($node)) {
+            $this->contentWidth = 0;
+            $this->contentList = $node;
+            foreach ($node as $item) {
+                $this->contentWidth = max($this->contentWidth, $this->estimateWidth($item));
             }
             $delimiter = ($column[0] === '@') ? "\n" : "\n\n";
-            $this->contentString = implode($delimiter, $data);
+            $this->contentString = implode($delimiter, $node);
         } else {
-            $this->contentString = preg_replace('!\s+!', ' ', $data);
-            $this->contentLength = strlen($this->contentString);
+            $this->contentString = preg_replace('!\s+!', ' ', $node);
+            $this->contentWidth = $this->estimateWidth($this->contentString);
         }
     }
 
@@ -348,41 +456,144 @@ class ExtractGrid
             || str_starts_with($line, '###! ');
     }
 
+    private function loadCharacters(): void
+    {
+        $this->inUse = [
+            'name' => true,
+        ];
+        $this->characterData = [];
+        foreach ($this->characterFiles as $character) {
+            $this->sceneBuffer = [
+                '_folder' => $character['_folder'],
+                'name' => $character['name']
+            ];
+            $this->commentBuffer = [];
+            $markdown = explode(
+                "\n",
+                @file_get_contents("$this->sourcePath/content/{$character['handle']}.nwd")
+            );
+            foreach ($markdown as $line) {
+                $line = rtrim($line);
+                if ($line === '') {
+                    continue;
+                }
+                if (str_starts_with($line, '%')) {
+                    if (!str_starts_with($line, '%%')) {
+                        // Look for a story extension
+                        $this->parseComment($line);
+                    }
+                } elseif (str_starts_with($line, '@')) {
+                    $this->parseReference($line);
+                }
+            }
+            $this->sceneBuffer['comments'] = $this->commentBuffer;
+            $this->characterData[] = $this->sceneBuffer;
+        }
+    }
+
+    private function loadLocations()
+    {
+        $this->inUse = [
+            'name' => true,
+        ];
+        $this->locationData = [];
+        foreach ($this->locationFiles as $location) {
+            $this->sceneBuffer = [
+                '_folder' => $location['_folder'],
+                'name' => $location['name']
+            ];
+            $this->commentBuffer = [];
+            $markdown = explode(
+                "\n",
+                @file_get_contents("$this->sourcePath/content/{$location['handle']}.nwd")
+            );
+            foreach ($markdown as $line) {
+                $line = rtrim($line);
+                if ($line === '') {
+                    continue;
+                }
+                if (str_starts_with($line, '%')) {
+                    if (!str_starts_with($line, '%%')) {
+                        // Look for a story extension
+                        $this->parseComment($line);
+                    }
+                } elseif (str_starts_with($line, '@')) {
+                    $this->parseReference($line);
+                }
+            }
+            $this->sceneBuffer['comments'] = $this->commentBuffer;
+            $this->locationData[] = $this->sceneBuffer;
+        }
+    }
+
     /**
      * Extracts scene information from the project XML file.
      * @throws Exception
      */
     private function loadProject(): void
     {
+        $this->characterFiles = [];
+        $folders = [];
+        $this->locationFiles = [];
         $this->sceneFiles = [];
         $this->project = new SimpleXMLElement(
             @file_get_contents("$this->sourcePath/nwProject.nwx")
         );
-        $parent = '';
+        $novelParent = '';
         $name = '';
         $this->loadStatus();
         foreach ($this->project->content->item as $item) {
-            if ((string)$item['class'] !== 'NOVEL') {
-                continue;
-            }
-            $itemType = (string)$item['type'];
-            $handle = (string)$item['handle'];
-            $root = (string)$item['root'];
-            if ($itemType === 'ROOT') {
-                $parent = $handle;
-                $name = isset($item->name) ? (string)$item->name : '';
-            } elseif ($itemType === 'FILE' && $root === $parent) {
-                $statusKey = (string)$item->name['status'];
-                $scene = [
-                    'handle' => $handle,
-                    '_active' => (string)$item->name['active'],
-                    '_novel' => $name,
-                    '_status' => $this->status[$statusKey] ?? 'Not Set',
-                ];
-                $scene['words'] = isset($item->meta['wordCount'])
-                    ? (string)$item->meta['wordCount'] : '';
+            $itemType = (string)$item['type'] ?? '';
+            $handle = (string)$item['handle'] ?? '';
+            $root = (string)$item['root'] ?? '';
+            $nodeParent = (string)$item['parent'] ?? '';
+            switch ((string)$item['class']) {
+                case 'CHARACTER':
+                    if ($itemType === 'FILE') {
+                        $character = [
+                            'handle' => $handle,
+                            'name' => isset($item->name) ? (string)$item->name : '',
+                            '_folder' => $folders[$nodeParent] ?? '',
+                        ];
+                        $this->characterFiles[] = $character;
+                    } elseif ($itemType === 'ROOT') {
+                        $folders[$handle] = '';
+                    } elseif ($itemType === 'FOLDER') {
+                        $folders[$handle] = isset($item->name) ? (string)$item->name : '';
+                    }
+                    break;
+                case 'NOVEL':
+                    if ($itemType === 'ROOT') {
+                        $novelParent = $handle;
+                        $name = isset($item->name) ? (string)$item->name : '';
+                    } elseif ($itemType === 'FILE' && $root === $novelParent) {
+                        $statusKey = (string)$item->name['status'];
+                        $scene = [
+                            'handle' => $handle,
+                            '_active' => (string)$item->name['active'],
+                            '_novel' => $name,
+                            '_status' => $this->status[$statusKey] ?? 'Not Set',
+                        ];
+                        $scene['words'] = isset($item->meta['wordCount'])
+                            ? (string)$item->meta['wordCount'] : '';
 
-                $this->sceneFiles[] = $scene;
+                        $this->sceneFiles[] = $scene;
+                    }
+                    break;
+                case 'WORLD':
+                    if ($itemType === 'FILE') {
+                        $location = [
+                            'handle' => $handle,
+                            'name' => isset($item->name) ? (string)$item->name : '',
+                            '_folder' => $folders[$nodeParent] ?? '',
+                        ];
+                        $this->locationFiles[] = $location;
+                    } elseif ($itemType === 'ROOT') {
+                        $folders[$handle] = '';
+                    } elseif ($itemType === 'FOLDER') {
+                        $folders[$handle] = isset($item->name) ? (string)$item->name : '';
+                    }
+                    break;
             }
         }
     }
@@ -578,220 +789,258 @@ class ExtractGrid
         $this->inUse[$command] = true;
     }
 
-    public function prepareFullSheet(): void
+    private function prepareCharacters()
     {
-        $this->sheet = $this->spreadsheet->getActiveSheet();
-        $this->sheet->setTitle('Scenes');
-
         // Add and style the headers
-        $headers = $this->getHeaders();
-        $headerKeys = array_keys($headers);
-        $maxColChars = [];
-        $col = 1;
-        $wordCountCol = 0;
-        foreach ($headers as $key => $header) {
-            if ($key === 'words') {
-                $wordCountCol = $col;
-            }
-            $this->setHeader($this->sheet, $col, $header);
-            $maxColChars[$col] = ceil(1.4 * strlen($header));
-            ++$col;
+        $columns = self::$characterAttributes;
+        $sheet = $this->spreadsheet->getSheet($this->sheetIndex);
+        $sheet->setTitle('Characters');
+
+        $headers = $this->getHeaders($columns);
+        $this->maxColChars = [];
+        foreach ($headers as $col0 => $header) {
+            $col1 = $col0 + 1;
+            $this->setHeader($sheet, $col1, $header);
+            $this->maxColChars[$col1] = ceil(1.4 * strlen($header));
         }
 
         // Now add the data
-        $row = 2;
-        foreach ($this->sceneData as $sceneData) {
-            $col = 1;
-            foreach ($headerKeys as $key) {
-                if (isset($sceneData[$key])) {
-                    $this->getSceneData($sceneData, $key);
-                    $this->sheet->setCellValue([$col, $row], $this->contentString);
-                    $this->formatStyle($row, $col, $key);
-                    $maxColChars[$col] = max($maxColChars[$col], $this->contentLength);
-                }
-                ++$col;
-            }
-            ++$row;
-        }
-        // Save the total word count
-        $this->sheet->setCellValue([$wordCountCol, $row], $this->wordTotal);
-        $this->formatStyle($row, $wordCountCol, 'words');
+        $this->prepareColumns($sheet, $this->characterData, $columns, $headers);
 
-        // Set column widths, save for the last one
-        for ($index = 1; $index < count($headers); ++$index) {
-            if (isset($maxColChars[$index])) {
-                $this->sheet->getColumnDimensionByColumn($index)->setWidth(
-                    min($maxColChars[$index], $this->wrapSize)
-                );
-            }
-        }
-        $this->wordCountStyle = self::$styles['words'];
-        $this->prepareWordCounts();
+        $this->setColumnWidths($sheet, $headers);
+
+        return true;
     }
 
-    private function prepareSheet(string $formatPath): void
+    private function prepareColumn(array $column, array $sceneData): void
     {
-        $formats = json_decode(@file_get_contents($formatPath), true);
-        if (empty($formats)) {
-            throw new Exception("Error reading format file $formatPath\n");
-        }
-        $this->sheet = $this->spreadsheet->getActiveSheet();
-        $this->sheet->setTitle('Scenes');
-
-        // Add and style the headers
-        $headers = ['col0'];
-        foreach ($formats['columns'] as $column) {
-            if (is_string($column)) {
-                $headers[] = self::$headings[$column] ?? '???';
-            } else {
-                $headers[] = $column['heading'] ?? '???';
-            }
-        }
-        $maxColChars = [];
-        foreach ($headers as $col => $header) {
-            if ($col === 0) {
-                continue;
-            }
-            $this->setHeader($this->sheet, $col, $header);
-            $maxColChars[$col] = ceil(1.4 * strlen($header));
-        }
-
-        // If there's a word count, determine which column and format it is in
-        $wordCountCol = 0;
-        $this->wordCountStyle = self::$styles['words'];
-        foreach ($formats['columns'] as $index => $column) {
-            if (is_string($column)) {
-                if ($column === 'words') {
-                    $wordCountCol = $index + 1;
-                }
-            } else {
-                if (($column['key'] ?? false) === 'words') {
-                    $wordCountCol = $index + 1;
-                    if ($column['style'] ?? false) {
-                        $this->wordCountStyle = $column['style'];
+        // Check for renamed header and/or filtered data
+        if (($column['exclude'] ?? false) && ($sceneData[$column['key']] ?? false)) {
+            if (is_array($sceneData[$column['key']])) {
+                foreach ($sceneData[$column['key']] as $index => $value) {
+                    if (in_array($value, $column['exclude'])) {
+                        unset($sceneData[$column['key']][$index]);
                     }
                 }
+            } elseif (in_array($sceneData[$column['key']], $column['exclude'])) {
+                $sceneData[$column['key']] = '';
             }
         }
+        $this->getNodeData($sceneData, $column['key']);
+        $this->setCellStyle($column);
 
-        // Now add the data
+    }
+
+    private function prepareColumnConditional(array $column, array $sceneData): void
+    {
+        if (isset($column['result'])) {
+            // See if we need to pull data from a different column
+            if (str_starts_with($column['result'], '*')) {
+                $this->getNodeData(
+                    $sceneData, substr($column['result'], 1)
+                );
+            } else {
+                $this->contentString = $column['result'];
+                $this->contentWidth = $this->estimateWidth($this->contentString);
+                $this->contentList = [$this->contentString];
+                $this->setCellStyle($column);
+            }
+        } elseif (isset($column['key'])) {
+            $this->getNodeData($sceneData, $column['key']);
+        } else {
+            $this->contentString = '*';
+            $this->contentWidth = 1;
+            $this->contentList = ['*'];
+        }
+        $this->setCellStyle($column);
+    }
+
+    private function prepareColumns(
+        Worksheet $sheet,
+        array $nodes,
+        array $columns,
+        array $headers
+    ): int
+    {
         $this->seen = [];
         $criteria = new Criteria();
         $lastNovel = '';
         $sequence = 0;
         $row = 2;
-        foreach ($this->sceneData as $sceneData) {
-            if (($sceneData['_novel'] ?? '') !== $lastNovel) {
+        foreach ($nodes as $node) {
+            if (($node['_novel'] ?? '') !== $lastNovel) {
                 $sequence = 0;
-                $lastNovel = $sceneData['_novel'];
+                $lastNovel = $node['_novel'];
             }
             ++$sequence;
-            $col = 1;
-            foreach ($formats['columns'] as $column) {
-                $seenKey = $headers[$col];
+            $col0 = 0;
+            foreach ($columns as $columnSpecification) {
+                $col1 = $col0 + 1;
+                $seenKey = $headers[$col0];
                 $this->contentString = '';
                 $this->contentList = [];
-                $this->contentLength = 0;
+                $this->contentWidth = 0;
                 $this->cellStyle = [];
                 $this->onFirst = false;
-                if (is_string($column)) {
-                    switch ($column) {
+                if (is_string($columnSpecification)) {
+                    switch ($columnSpecification) {
                         case '_blank':
                             break;
                         case '_sequence':
                             $this->contentString = (string)$sequence;
-                            $this->contentLength = strlen($sequence);
+                            $this->contentWidth = $this->estimateWidth($sequence);
                             $this->cellStyle['align'] = Alignment::HORIZONTAL_RIGHT;
                             break;
                         default:
-                            $this->getSceneData($sceneData, $column);
+                            $this->getNodeData($node, $columnSpecification);
                             break;
                     }
-                    $this->setCellStyle(['key' => $column]);
-                } elseif (isset($column['test'])) {
+                    $this->setCellStyle(['key' => $columnSpecification]);
+                } elseif (isset($columnSpecification['test'])) {
                     // Conditional data in this column
-                    $included = $criteria->evaluate($column['test'], function ($key) use ($sceneData) {
-                        return $sceneData[$key] ?? '';
-                    });
+                    $included = $criteria->evaluate($columnSpecification['test'],
+                        function ($key) use ($node) {
+                            return $node[$key] ?? '';
+                        }
+                    );
                     if ($included) {
-                        if (isset($column['result'])) {
-                            // See if we need to pull data from a different column
-                            if (str_starts_with($column['result'], '*')) {
-                                $this->getSceneData(
-                                    $sceneData, substr($column['result'], 1)
-                                );
-                            } else {
-                                $this->contentString = $column['result'];
-                                $this->contentLength = strlen($this->contentString);
-                                $this->contentList = [$this->contentString];
-                                $this->setCellStyle($column);
-                            }
-                        } elseif (isset($column['key'])) {
-                            $this->getSceneData($sceneData, $column['key']);
-                        } else {
-                            $this->contentString = '*';
-                            $this->contentLength = 1;
-                            $this->contentList = ['*'];
-                        }
-                        $this->setCellStyle($column);
+                        $this->prepareColumnConditional($columnSpecification, $node);
                     }
-                } elseif (isset($column['key'])) {
+                } elseif (isset($columnSpecification['key'])) {
                     // Renamed header and/or filtered data
-                    if (($column['exclude'] ?? false) && ($sceneData[$column['key']] ?? false)) {
-                        if (is_array($sceneData[$column['key']])) {
-                            foreach ($sceneData[$column['key']] as $index => $value) {
-                                if (in_array($value, $column['exclude'])) {
-                                    unset($sceneData[$column['key']][$index]);
-                                }
-                            }
-                        } elseif (in_array($sceneData[$column['key']], $column['exclude'])) {
-                            $sceneData[$column['key']] = '';
-                        }
-                    }
-                    $this->getSceneData($sceneData, $column['key']);
-                    $this->setCellStyle($column);
+                    $this->prepareColumn($columnSpecification, $node);
                 }
-                ++$this->contentLength;
-                if ($this->cellStyle['onFirst'] ?? false) {
-                    $this->seen[$seenKey] ??= [];
-                    foreach ($this->contentList as $newValue) {
-                        if (!in_array($newValue, $this->seen[$seenKey])) {
-                            $this->seen[$seenKey][] = $newValue;
-                            $this->cellStyle['bold'] = true;
-                            $this->contentLength = round($this->contentLength * 1.2);
-                        }
-                    }
-                }
-                $this->sheet->setCellValue([$col, $row], $this->contentString);
-                $this->formatCell($this->sheet, $row, $col, $this->cellStyle);
-                $maxColChars[$col] = max($maxColChars[$col], $this->contentLength);
-                ++$col;
+                ++$this->contentWidth;
+                $this->flagFirst($seenKey);
+                $sheet->setCellValue([$col1, $row], $this->contentString);
+                $this->formatCell($sheet, $row, $col1, $this->cellStyle);
+                $this->maxColChars[$col1] = max($this->maxColChars[$col1], $this->contentWidth);
+                ++$col0;
             }
             ++$row;
         }
-        // Save the total word count, if there is one
-        if ($wordCountCol) {
-            $this->sheet->setCellValue([$wordCountCol, $row], $this->wordTotal);
-            $this->formatCell($this->sheet, $row, $wordCountCol, $this->wordCountStyle);
+
+        return $row;
+    }
+
+    private function prepareLocations(): bool
+    {
+        // Add and style the headers
+        $columns = self::$locationAttributes;
+        $sheet = $this->spreadsheet->getSheet($this->sheetIndex);
+        $sheet->setTitle('Locations');
+
+        $headers = $this->getHeaders($columns);
+        $this->maxColChars = [];
+        foreach ($headers as $col0 => $header) {
+            $col1 = $col0 + 1;
+            $this->setHeader($sheet, $col1, $header);
+            $this->maxColChars[$col1] = ceil(1.4 * strlen($header));
         }
 
+        // Now add the data
+        $this->prepareColumns($sheet, $this->locationData, $columns, $headers);
 
-        // Set column widths
-        for ($index = 1; $index <= count($headers); ++$index) {
-            if (isset($maxColChars[$index])) {
-                $this->sheet->getColumnDimensionByColumn($index)->setWidth(
-                    min($maxColChars[$index], $formats['wrap'] ?? $this->wrapSize)
-                );
+        $this->setColumnWidths($sheet, $headers);
+
+        return true;
+    }
+
+    private function prepareScenes(): bool
+    {
+        // Add and style the headers
+        $columns = $this->formats['scenes'] ?? ($this->formats['columns'] ?? true);
+        // If the scene column specification is 'true', then include all columns except the blank.
+        if ($columns === true) {
+            $columns = self::$sceneAttributes;
+        } elseif ($columns === false) {
+            return false;
+        }
+        $sheet = $this->spreadsheet->getActiveSheet();
+        $sheet->setTitle('Scenes');
+
+        $headers = $this->getHeaders($columns);
+
+        $this->maxColChars = [];
+        foreach ($headers as $col0 => $header) {
+            $col1 = $col0 + 1;
+            $this->setHeader($sheet, $col1, $header);
+            $this->maxColChars[$col1] = ceil(1.4 * strlen($header));
+        }
+
+        // If there's a word count, determine which column and format it is in
+        $wordCountCol = 0;
+        foreach ($columns as $col0 => $columnDefinition) {
+            $col1 = $col0 + 1;
+            if (is_string($columnDefinition)) {
+                // No format override specified, just track the column.
+                if ($columnDefinition === 'words') {
+                    $wordCountCol = $col1;
+                }
+            } else {
+                // Check for a style specification
+                if (($columnDefinition['key'] ?? false) === 'words') {
+                    $wordCountCol = $col1;
+                    if ($columnDefinition['style'] ?? false) {
+                        $this->wordCountStyle = $columnDefinition['style'];
+                    }
+                }
             }
         }
-        if ($formats['wordCounts'] ?? true) {
+        // Now add the data
+        $row = $this->prepareColumns($sheet, $this->sceneData, $columns, $headers);
+
+        // Save the total word count, if there is one
+        if ($wordCountCol) {
+            $sheet->setCellValue([$wordCountCol, $row], $this->wordTotal);
+            $this->formatCell($sheet, $row, $wordCountCol, $this->wordCountStyle);
+        }
+
+        $this->setColumnWidths($sheet, $headers);
+
+        return true;
+    }
+
+    private function prepareSheets(string $formatPath): void
+    {
+        if ($formatPath === '') {
+            $this->formats = [];
+        } else {
+            $this->formats = json_decode(@file_get_contents($formatPath), true);
+            if (empty($this->formats)) {
+                throw new Exception("Error reading format file $formatPath\n");
+            }
+        }
+        $this->wordCountStyle = self::$styles['words'];
+        $hadContent = $this->prepareScenes();
+        if ($this->formats['wordCounts'] ?? true) {
+            if ($hadContent) {
+                $this->spreadsheet->createSheet();
+                ++$this->sheetIndex;
+                $this->spreadsheet->setActiveSheetIndex($this->sheetIndex);
+            }
             $this->prepareWordCounts();
+            $hadContent = true;
+        }
+        if ($this->formats['characters'] ?? true) {
+            if ($hadContent) {
+                $this->spreadsheet->createSheet();
+                ++$this->sheetIndex;
+            }
+            $hadContent = $this->prepareCharacters();
+        }
+        if ($this->formats['locations'] ?? true) {
+            if ($hadContent) {
+                $this->spreadsheet->createSheet();
+                ++$this->sheetIndex;
+            }
+            $hadContent = $this->prepareLocations();
         }
     }
 
     private function prepareWordCounts(): void
     {
-        $sheet = $this->spreadsheet->createSheet();
+        $sheet = $this->spreadsheet->getActiveSheet();
         $sheet->setTitle('Statistics');
         $maxStatusChars = 6;
         foreach (array_keys($this->wordCounts) as $status) {
@@ -868,6 +1117,18 @@ class ExtractGrid
         $this->cellStyle = $style;
 
         return $this;
+    }
+
+    private function setColumnWidths(Worksheet $sheet, array $headers)
+    {
+        // Set column widths
+        for ($index = 1; $index <= count($headers); ++$index) {
+            if (isset($this->maxColChars[$index])) {
+                $sheet->getColumnDimensionByColumn($index)->setWidth(
+                    min($this->maxColChars[$index], $this->formats['wrap'] ?? $this->wrapSize)
+                );
+            }
+        }
     }
 
     private function setHeader(Worksheet $sheet, int $col, string $header, $row = 1): void
