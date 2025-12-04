@@ -12,6 +12,7 @@
 namespace Lib\NovelWriter;
 
 use Abivia\Criteria\Criteria;
+use Abivia\Criteria\LogicException;
 use DateMalformedStringException;
 use DateTimeImmutable;
 use DateTimeZone;
@@ -31,9 +32,9 @@ class ExtractGrid
      */
     protected array $cellStyle;
     /**
-     * @var array|string[] Attributes associated with character nodes
+     * @var array|string[] Predefined attributes associated with character nodes
      */
-    static protected array $characterAttributes = [
+    static protected array $characterAttributeRef = [
         '_sequence',
         'name',
         '@tag',
@@ -41,9 +42,15 @@ class ExtractGrid
         'given',
         'surname',
         'pronouns',
+        'age',
+        'hair',
+        'eyes',
+        'skin',
+        'build',
         'fate',
         'synopsis',
     ];
+    protected array $characterAttributes = [];
     protected array $characterData = [];
     protected array $characterFiles = [];
     protected array $commentBuffer;
@@ -58,7 +65,7 @@ class ExtractGrid
     protected float $contentWidth;
     protected mixed $formats;
     /**
-     * @var array|string[] Default column headers for all fields.
+     * @var array|string[] Override column headers for fields.
      */
     static protected array $headerText = [
         '@char' => 'Characters',
@@ -77,52 +84,56 @@ class ExtractGrid
         '_folder' => 'Folder',
         '_novel' => 'Novel',
         '_sequence' => '#',
+        '_sla' => 'Sentence Lengths',
         '_status' => 'Status',
-        'about' => 'This Scene is About',
-        'appearance' => 'Appearance',
+        'about' => 'This NovelData is About',
+        //'age' => 'Age',
+        //'appearance' => 'Appearance',
         'aural' => 'Environmental Sounds',
-        'climax' => 'Climax',
-        'clothing' => 'Clothing',
+        //'climax' => 'Climax',
+        //'clothing' => 'Clothing',
         'comments' => 'Additional Notes',
         'complication' => 'Complication(s)',
-        'crisis' => 'Crisis',
-        'duration' => 'Duration',
-        'emotions' => 'Emotions',
-        'fate' => 'Fate',
-        'given' => 'Given',
-        'goal' => 'Goal',
+        //'crisis' => 'Crisis',
+        //'duration' => 'Duration',
+        //'emotions' => 'Emotions',
+        //'fate' => 'Fate',
+        //'given' => 'Given',
+        //'goal' => 'Goal',
+        //'hair' => 'Hair',
         'impact' => 'Impact of the scene',
         'incite' => 'Inciting Incident',
-        'name' => 'Name',
+        //'name' => 'Name',
         'others' => 'Off-stage Characters',
-        'pace' => 'Pace',
+        //'pace' => 'Pace',
         'polarity' => 'Polarity Shift',
-        'pronouns' => 'Pronouns',
+        //'pronouns' => 'Pronouns',
         'prose' => 'Prose Quality/Cadence',
-        'purpose' => 'Purpose',
+        //'purpose' => 'Purpose',
         'resolution' => '(Non-)Resolution',
         'smell' => 'Environmental Smells',
-        'surname' => 'Surname',
-        'synopsis' => 'Synopsis',
+        //'surname' => 'Surname',
+        //'synopsis' => 'Synopsis',
         'time' => 'Period/Time',
         'tod' => 'Time of Day',
         'touch' => 'Tactile',
         'turning' => 'Turning Point',
         'value' => 'Value Shift',
-        'weather' => 'Weather',
-        'words' => 'Words',
+        //'weather' => 'Weather',
+        //'words' => 'Words',
     ];
     protected array $inUse = [];
     /**
      * @var array|string[] Attributes associated with character nodes
      */
-    static protected array $locationAttributes = [
+    static protected array $locationAttributeRef = [
         '_sequence',
         'name',
         '@tag',
         '_folder',
         'synopsis',
     ];
+    protected array $locationAttributes = [];
     protected array $locationData;
     protected array $locationFiles;
     /**
@@ -133,11 +144,16 @@ class ExtractGrid
      * @var false|mixed
      */
     protected bool $onFirst;
+    /**
+     * @var array|array[]
+     */
+    protected array $phrases;
+    protected float $phraseColWidth;
     protected SimpleXMLElement $project;
     /**
      * @var array|string[] Attributes associated with scene nodes
      */
-    static protected array $sceneAttributes = [
+    static protected array $sceneAttributeRef = [
         '_novel',
         '_sequence',
         '_active',
@@ -145,6 +161,7 @@ class ExtractGrid
         'words',
         '_status',
         'synopsis',
+        '_sla',
         'value',
         'polarity',
         'purpose',
@@ -183,9 +200,14 @@ class ExtractGrid
         'emotions',
         'comments',
     ];
+    protected array $sceneAttributes = [];
     protected array $sceneBuffer;
+    /**
+     * @var array[NovelData]
+     */
     protected array $sceneData = [];
     protected array $sceneFiles = [];
+    protected NovelWriterFileLoader $sceneLoader;
     protected array $seen = [];
     private $sheetIndex = 0;
     protected string $sourcePath;
@@ -207,13 +229,36 @@ class ExtractGrid
             'numberFormat' => '#,##0',
         ],
     ];
+    protected bool $verbose = true;
     /**
      * @var array|mixed
      */
     protected array $wordCountStyle;
-    protected array $wordCounts;
+    protected array $wordDistribution;
+    protected float $wordDistributionWidth;
     protected int $wordTotal;
     protected int $wrapSize = 40;
+
+    /**
+     * Get a list of attributes in use, ordered by the elements in attributeRef.
+     * @param array $attributeRef
+     * @return array
+     */
+    private function buildAttributes(array $attributeRef): array
+    {
+        $attributes = [];
+        foreach ($attributeRef as $column) {
+            if (isset($this->inUse[$column])) {
+                $attributes[$column] = $column;
+            }
+        }
+        foreach (array_keys($this->inUse) as $column) {
+            if (!isset($attributes[$column])) {
+                $attributes[$column] = $column;
+            }
+        }
+        return array_values($attributes);
+    }
 
     public function checkOutputPath(string $path): array
     {
@@ -241,42 +286,26 @@ class ExtractGrid
     }
 
     /**
-     * Get a word count by scene without counting headers, comments, etc.
-     * @param array $markdown
-     * @return int[]
+     * Get word counts by scene status, active state
+     * @return array
      */
-    private function countWords(array $markdown): array
+    private function countWords(): array
     {
-        $count = [-1 => 0];
-        $scene = -1;
-        $wordCount = 0;
-        $hasWords = false;
-        foreach ($markdown as $line) {
-            $line = rtrim($line);
-            if ($line === '') {
-                continue;
-            }
-            if ($this->isScene($line)) {
-                $count[$scene++] = $wordCount;
-                $wordCount = 0;
-                $hasWords = false;
-                continue;
-            }
-            if (preg_match('!^[%@#[]!', $line)) {
-                continue;
-            }
-            $newWords = str_word_count($line);
-            $wordCount += $newWords;
-            $hasWords = true;
+        $counts = [];
+        foreach ($this->sceneData as $scene) {
+            $status = $scene['_status'];
+            $active = $scene['_active'];
+            $counts[$status] ??= [
+                'scenes.yes' => 0, 'scenes.no' => 0, 'scenes.total' => 0,
+                'words.yes' => 0, 'words.no' => 0, 'words.total' => 0,
+            ];
+            $counts[$status]["scenes.$active"]++;
+            $counts[$status]['scenes.total']++;
+            $counts[$status]["words.$active"] += $scene['words'];
+            $counts[$status]['words.total'] += $scene['words'];
         }
-        if ($hasWords) {
-            $count[$scene] = $wordCount;
-        }
-        $count[0] ??= 0;
-        $count[0] += $count[-1];
-        unset($count[-1]);
 
-        return $count;
+        return $counts;
     }
 
     /**
@@ -291,7 +320,7 @@ class ExtractGrid
         // Same with "wider"
         $wider = 0.8 * strlen(preg_replace('/[^MOQW]/', '', $text));
         // Same with "narrower"
-        $narrower = 0.6 * strlen(preg_replace('/[^ilI|)(}{ !\'`]/', '', $text));
+        $narrower = 0.6 * strlen(preg_replace('/[^ilI|)(}{ !\'.;:`]/', '', $text));
         return 1.05 * strlen($text) + $wide + $wider - $narrower;
     }
 
@@ -303,6 +332,9 @@ class ExtractGrid
      */
     public function export(string $path, string $format = ''): void
     {
+        if ($this->verbose) {
+            echo "Loading Project\n";
+        }
         try {
             $this->loadProject();
         } catch (Exception $exception) {
@@ -310,14 +342,26 @@ class ExtractGrid
             return;
         }
         try {
+            if ($this->verbose) {
+                echo "Loading Characters\n";
+            }
             $this->loadCharacters();
+            if ($this->verbose) {
+                echo "Loading Locations\n";
+            }
             $this->loadLocations();
+            if ($this->verbose) {
+                echo "Loading Scenes\n";
+            }
             $this->loadScenes();
             $this->spreadsheet = new Spreadsheet();
             $this->sheetIndex = 0;
             $this->prepareSheets($format);
             $typeMap = $this->getWriterType($path);
             $this->spreadsheet->setActiveSheetIndex(0);
+            if ($this->verbose) {
+                echo "Writing\n";
+            }
             $writer = IOFactory::createWriter($this->spreadsheet, $typeMap);
             if ($writer instanceof HtmlWriter) {
                 $writer->writeAllSheets();
@@ -326,8 +370,11 @@ class ExtractGrid
             $this->spreadsheet->disconnectWorksheets();
             unset($this->spreadsheet);
         } catch (Exception $exception) {
-            echo $exception->getMessage();
+            echo 'Exception: ' . $exception->getMessage();
             return;
+        }
+        if ($this->verbose) {
+            echo "Done\n";
         }
     }
 
@@ -368,6 +415,15 @@ class ExtractGrid
         $sheet->getStyle([$col, $row])->applyFromArray($style);
     }
 
+    private function getColumns(mixed $option, array $default): array|false
+    {
+        // If the column specification is 'true', then include all columns.
+        if ($option === true) {
+            $option = $default;
+        }
+        return $option;
+    }
+
     /**
      * Prepare an array of header texts from a list of column keys (adds col0 so the indexed from 1)
      * @param array $columns
@@ -383,7 +439,9 @@ class ExtractGrid
                 if ((self::$headerText[$column] ?? false)) {
                     $headers[] = self::$headerText[$column];
                 } else {
-                    $headers[] = ucfirst($column);
+                    $words = explode('_', $column);
+                    $words = array_map(fn($word):string => ucfirst($word), $words);
+                    $headers[] = implode(' ', $words);
                 }
             } else {
                 $headers[] = '????';
@@ -395,11 +453,11 @@ class ExtractGrid
     /**
      * Convert this scene data into a string, save the string in the contentString
      * and contentWidth properties.
-     * @param array $sceneData
+     * @param NovelData $sceneData
      * @param string $column
      * @return void
      */
-    private function getNodeData(array $sceneData, string $column): void
+    private function getNodeData(NovelData $sceneData, string $column): void
     {
         $node = $sceneData[$column] ?? '';
         if (is_array($node)) {
@@ -460,70 +518,39 @@ class ExtractGrid
     {
         $this->inUse = [
             'name' => true,
+            '_folder' => true,
         ];
         $this->characterData = [];
-        foreach ($this->characterFiles as $character) {
-            $this->sceneBuffer = [
-                '_folder' => $character['_folder'],
-                'name' => $character['name']
-            ];
-            $this->commentBuffer = [];
-            $markdown = explode(
-                "\n",
-                @file_get_contents("$this->sourcePath/content/{$character['handle']}.nwd")
-            );
-            foreach ($markdown as $line) {
-                $line = rtrim($line);
-                if ($line === '') {
-                    continue;
-                }
-                if (str_starts_with($line, '%')) {
-                    if (!str_starts_with($line, '%%')) {
-                        // Look for a story extension
-                        $this->parseComment($line);
-                    }
-                } elseif (str_starts_with($line, '@')) {
-                    $this->parseReference($line);
-                }
-            }
-            $this->sceneBuffer['comments'] = $this->commentBuffer;
-            $this->characterData[] = $this->sceneBuffer;
+        foreach ($this->characterFiles as $file) {
+            $this->characterData[] = $this->loadFile($file);
         }
+        $this->characterAttributes = $this->buildAttributes(self::$characterAttributeRef);
     }
 
-    private function loadLocations()
+    /**
+     * @param array $file
+     * @return void
+     */
+    private function loadFile(array $file): NovelData
+    {
+        $markdown = explode(
+            "\n",
+            @file_get_contents("$this->sourcePath/content/{$file['handle']}.nwd")
+        );
+        $loader = new NovelWriterFileLoader();
+        return $loader->loadFile($file, $markdown, $this->inUse);
+    }
+
+    private function loadLocations(): void
     {
         $this->inUse = [
             'name' => true,
         ];
         $this->locationData = [];
         foreach ($this->locationFiles as $location) {
-            $this->sceneBuffer = [
-                '_folder' => $location['_folder'],
-                'name' => $location['name']
-            ];
-            $this->commentBuffer = [];
-            $markdown = explode(
-                "\n",
-                @file_get_contents("$this->sourcePath/content/{$location['handle']}.nwd")
-            );
-            foreach ($markdown as $line) {
-                $line = rtrim($line);
-                if ($line === '') {
-                    continue;
-                }
-                if (str_starts_with($line, '%')) {
-                    if (!str_starts_with($line, '%%')) {
-                        // Look for a story extension
-                        $this->parseComment($line);
-                    }
-                } elseif (str_starts_with($line, '@')) {
-                    $this->parseReference($line);
-                }
-            }
-            $this->sceneBuffer['comments'] = $this->commentBuffer;
-            $this->locationData[] = $this->sceneBuffer;
+            $this->locationData[] = $this->loadFile($location);
         }
+        $this->locationAttributes = $this->buildAttributes(self::$locationAttributeRef);
     }
 
     /**
@@ -607,67 +634,20 @@ class ExtractGrid
             'words' => true,
         ];
         $this->sceneData = [];
-        $this->sceneBuffer = [];
-        $this->commentBuffer = [];
-        $this->wordCounts = [];
-        $this->wordTotal = 0;
+        $this->sceneLoader = new NovelWriterFileLoader();
         // Track if we're in the scene header or the body, so we don't accumulate inline comments.
-        $inHeader = true;
-        foreach ($this->sceneFiles as $scene) {
+        foreach ($this->sceneFiles as $sceneNode) {
             $markdown = explode(
                 "\n",
-                @file_get_contents("$this->sourcePath/content/{$scene['handle']}.nwd")
+                @file_get_contents("$this->sourcePath/content/{$sceneNode['handle']}.nwd")
             );
-            // Get word counts by scene.
-            $wordCounts = $this->countWords($markdown);
-            $sceneId = 0;
-            foreach ($markdown as $line) {
-                $line = rtrim($line);
-                if ($line === '') {
-                    continue;
-                }
-                if ($this->isScene($line)) {
-                    // This is the start of a scene, save the preceding scene, if any.
-                    if (count($this->sceneBuffer)) {
-                        $this->sceneBuffer['comments'] = $this->commentBuffer;
-                        $this->sceneData[] = $this->sceneBuffer;
-                    }
-                    // Reset the header flag, invalidate the word count, and clear the comment buffer
-                    $inHeader = true;
-                    $status = $scene['_status'];
-                    $this->wordCounts[$status] ??= ['yes' => 0, 'no' => 0, '#yes' => 0, '#no' => 0];
-                    $words = $wordCounts[$sceneId++] ?? 0;
-                    $this->wordTotal += $words;
-                    $active = $scene['_active'];
-                    $this->wordCounts[$status][$active] += $words;
-                    ++$this->wordCounts[$status]["#$active"];
-                    $this->sceneBuffer = [
-                        '_active' => $active,
-                        '_novel' => $scene['_novel'],
-                        '_status' => $status,
-                        'name' => trim(substr($line, 4)),
-                        'words' => $words,
-                    ];
-                    $this->commentBuffer = [];
-                } elseif (str_starts_with($line, '%')) {
-                    if (str_starts_with($line, '%%')) {
-                        // We're in the header metadata
-                        $inHeader = true;
-                    } elseif ($inHeader) {
-                        // Look for a story extension
-                        $this->parseComment($line);
-                    }
-                } elseif (str_starts_with($line, '@')) {
-                    $this->parseReference($line);
-                } else {
-                    $inHeader = false;
-                }
-            }
+            $this->sceneLoader->loadScene($sceneNode, $markdown, $this->sceneData);
         }
-        if (count($this->sceneBuffer)) {
-            $this->sceneBuffer['comments'] = $this->commentBuffer;
-            $this->sceneData[] = $this->sceneBuffer;
+        $this->profileScenes();
+        foreach (array_keys($this->sceneLoader->inUse) as $key) {
+            $this->inUse[$key] = true;
         }
+        $this->sceneAttributes = $this->buildAttributes(self::$sceneAttributeRef);
     }
 
     /**
@@ -679,45 +659,6 @@ class ExtractGrid
         $this->status = [];
         foreach ($this->project->settings->status->entry as $entry) {
             $this->status[(string)$entry['key']] = (string)$entry;
-        }
-    }
-
-    /**
-     * Examine the content of a comment and extract anything formatted as a story
-     * @param string $line
-     * @return void
-     */
-    private function parseComment(string $line): void
-    {
-        $parts = explode(':', $line, 2);
-        $command = strtolower(trim(substr($parts[0], 1)));
-        // Handle the two versions of "synopsis".
-        if (
-            str_starts_with($command, 'synopsis')
-            || str_starts_with($command, 'short')
-        ) {
-            if (count($parts) > 1) {
-                $this->sceneBuffer['synopsis'] ??= [];
-                $this->sceneBuffer['synopsis'][] = trim($parts[1]);
-                $this->inUse['synopsis'] = true;
-            }
-        } elseif (str_starts_with($command, self::STRUCTURE_KEYWORD . '.')) {
-            // This is a story attribute
-            $subParts = explode('.', $command, 2);
-            // Check for a story term and save the text
-            if (count($subParts) > 1) {
-                $term = trim($subParts[1]);
-                $note = count($parts) > 1 ? trim($parts[1]) : '';
-                if ($note !== '') {
-                    $this->sceneBuffer[$term] ??= [];
-                    $this->sceneBuffer[$term][] = trim($parts[1]);
-                    $this->inUse[$term] = true;
-                }
-            }
-        } elseif (!str_starts_with($command, '~')) {
-            // Just a regular comment (in the header)
-            $this->commentBuffer[] = trim(substr($line, 1));
-            $this->inUse['comments'] = true;
         }
     }
 
@@ -763,46 +704,54 @@ class ExtractGrid
         return $path;
     }
 
-    /**
-     * Parse an @reference in and save the value. If the value is a list, explode and trim it.
-     * @param string $line
-     * @return void
-     */
-    private function parseReference(string $line): void
+    private function prepareAnalysis(): bool
     {
-        $parts = explode(':', $line, 2);
-        $command = strtolower(trim($parts[0]));
-        // Ignore this if there is no value.
-        if (count($parts) === 1 || trim($parts[1]) === '') {
-            return;
+        $sheet = $this->spreadsheet->getSheet($this->sheetIndex);
+        $sheet->setTitle('Analysis');
+
+        $fw = $this->estimateWidth('Frequency');
+        $this->setHeader($sheet, 1, 'Word', width: 6.0);
+        $this->setHeader($sheet, 2, 'Frequency', width: $fw);
+        $this->setHeader($sheet, 4, 'Phrase', width: $this->phraseColWidth);
+        $this->setHeader($sheet, 5, 'Frequency', width: $fw);
+
+        $sheet->getColumnDimensionByColumn(1)->setWidth($this->wordDistributionWidth);
+        $sheet->getColumnDimensionByColumn(4)->setWidth($this->phraseColWidth);
+
+        $row = 2;
+        $right = $this->wordCountStyle;
+        // Word frequency
+        foreach ($this->wordDistribution as $word => $count) {
+            // Status
+            $sheet->setCellValue([1, $row], $word);
+            $sheet->setCellValue([2, $row], $count);
+            $this->formatCell($sheet, $row, 2, $right);
+            ++$row;
         }
-        $list = explode(',', $parts[1]);
-        foreach ($list as $key => $item) {
-            $item = trim($item);
-            if ($item === '') {
-                unset($list[$key]);
-            } else {
-                $list[$key] = $item;
-            }
+        $row = 2;
+        // Status
+        foreach ($this->phrases as $word => $count) {
+            // Status
+            $sheet->setCellValue([4, $row], $word);
+            $sheet->setCellValue([5, $row], $count);
+            $this->formatCell($sheet, $row, 5, $right);
+            ++$row;
         }
-        $this->sceneBuffer[$command] = $list;
-        $this->inUse[$command] = true;
+        return true;
     }
 
     private function prepareCharacters()
     {
+        $columns = $this->formats['characters'] ?? true;
+        if ($columns === false) {
+            return false;
+        }
+        $columns = $this->getColumns($columns, $this->characterAttributes);
         // Add and style the headers
-        $columns = self::$characterAttributes;
         $sheet = $this->spreadsheet->getSheet($this->sheetIndex);
         $sheet->setTitle('Characters');
 
-        $headers = $this->getHeaders($columns);
-        $this->maxColChars = [];
-        foreach ($headers as $col0 => $header) {
-            $col1 = $col0 + 1;
-            $this->setHeader($sheet, $col1, $header);
-            $this->maxColChars[$col1] = ceil(1.4 * strlen($header));
-        }
+        $headers = $this->setHeaders($sheet, $columns);
 
         // Now add the data
         $this->prepareColumns($sheet, $this->characterData, $columns, $headers);
@@ -812,14 +761,14 @@ class ExtractGrid
         return true;
     }
 
-    private function prepareColumn(array $column, array $sceneData): void
+    private function prepareColumn(array $column, NovelData $sceneData): void
     {
         // Check for renamed header and/or filtered data
         if (($column['exclude'] ?? false) && ($sceneData[$column['key']] ?? false)) {
             if (is_array($sceneData[$column['key']])) {
                 foreach ($sceneData[$column['key']] as $index => $value) {
                     if (in_array($value, $column['exclude'])) {
-                        unset($sceneData[$column['key']][$index]);
+                        $sceneData->unset($column['key'], $index);
                     }
                 }
             } elseif (in_array($sceneData[$column['key']], $column['exclude'])) {
@@ -831,7 +780,7 @@ class ExtractGrid
 
     }
 
-    private function prepareColumnConditional(array $column, array $sceneData): void
+    private function prepareColumnConditional(array $column, NovelData $sceneData): void
     {
         if (isset($column['result'])) {
             // See if we need to pull data from a different column
@@ -855,6 +804,14 @@ class ExtractGrid
         $this->setCellStyle($column);
     }
 
+    /**
+     * @param Worksheet $sheet
+     * @param NovelData[] $nodes
+     * @param array $columns
+     * @param array $headers
+     * @return int
+     * @throws \Abivia\Criteria\LogicException
+     */
     private function prepareColumns(
         Worksheet $sheet,
         array $nodes,
@@ -925,18 +882,16 @@ class ExtractGrid
 
     private function prepareLocations(): bool
     {
+        $columns = $this->formats['locations'] ?? true;
+        if ($columns === false) {
+            return false;
+        }
+        $columns = $this->getColumns($columns, $this->locationAttributes);
         // Add and style the headers
-        $columns = self::$locationAttributes;
         $sheet = $this->spreadsheet->getSheet($this->sheetIndex);
         $sheet->setTitle('Locations');
 
-        $headers = $this->getHeaders($columns);
-        $this->maxColChars = [];
-        foreach ($headers as $col0 => $header) {
-            $col1 = $col0 + 1;
-            $this->setHeader($sheet, $col1, $header);
-            $this->maxColChars[$col1] = ceil(1.4 * strlen($header));
-        }
+        $headers = $this->setHeaders($sheet, $columns);
 
         // Now add the data
         $this->prepareColumns($sheet, $this->locationData, $columns, $headers);
@@ -946,27 +901,20 @@ class ExtractGrid
         return true;
     }
 
+    /**
+     * @throws LogicException
+     */
     private function prepareScenes(): bool
     {
-        // Add and style the headers
         $columns = $this->formats['scenes'] ?? ($this->formats['columns'] ?? true);
-        // If the scene column specification is 'true', then include all columns except the blank.
-        if ($columns === true) {
-            $columns = self::$sceneAttributes;
-        } elseif ($columns === false) {
+        if ($columns === false) {
             return false;
         }
+        $columns = $this->getColumns($columns, $this->sceneAttributes);
         $sheet = $this->spreadsheet->getActiveSheet();
         $sheet->setTitle('Scenes');
 
-        $headers = $this->getHeaders($columns);
-
-        $this->maxColChars = [];
-        foreach ($headers as $col0 => $header) {
-            $col1 = $col0 + 1;
-            $this->setHeader($sheet, $col1, $header);
-            $this->maxColChars[$col1] = ceil(1.4 * strlen($header));
-        }
+        $headers = $this->setHeaders($sheet, $columns);
 
         // If there's a word count, determine which column and format it is in
         $wordCountCol = 0;
@@ -1012,12 +960,18 @@ class ExtractGrid
             }
         }
         $this->wordCountStyle = self::$styles['words'];
+        if ($this->verbose) {
+            echo "Preparing Scenes\n";
+        }
         $hadContent = $this->prepareScenes();
         if ($this->formats['wordCounts'] ?? true) {
             if ($hadContent) {
                 $this->spreadsheet->createSheet();
                 ++$this->sheetIndex;
                 $this->spreadsheet->setActiveSheetIndex($this->sheetIndex);
+            }
+            if ($this->verbose) {
+                echo "Preparing Statistics\n";
             }
             $this->prepareWordCounts();
             $hadContent = true;
@@ -1027,6 +981,9 @@ class ExtractGrid
                 $this->spreadsheet->createSheet();
                 ++$this->sheetIndex;
             }
+            if ($this->verbose) {
+                echo "Preparing Characters\n";
+            }
             $hadContent = $this->prepareCharacters();
         }
         if ($this->formats['locations'] ?? true) {
@@ -1034,16 +991,31 @@ class ExtractGrid
                 $this->spreadsheet->createSheet();
                 ++$this->sheetIndex;
             }
+            if ($this->verbose) {
+                echo "Preparing Locations\n";
+            }
             $hadContent = $this->prepareLocations();
+        }
+        if ($this->formats['analysis'] ?? true) {
+            if ($hadContent) {
+                $this->spreadsheet->createSheet();
+                ++$this->sheetIndex;
+            }
+            if ($this->verbose) {
+                echo "Preparing Analysis\n";
+            }
+            $hadContent = $this->prepareAnalysis();
         }
     }
 
     private function prepareWordCounts(): void
     {
-        $sheet = $this->spreadsheet->getActiveSheet();
+        $sheet = $this->spreadsheet->getSheet($this->sheetIndex);
         $sheet->setTitle('Statistics');
         $maxStatusChars = 6;
-        foreach (array_keys($this->wordCounts) as $status) {
+        $statusList = array_keys($this->sceneLoader->sceneStatusList);
+        sort($statusList);
+        foreach ($statusList as $status) {
             $maxStatusChars = max($maxStatusChars, strlen($status));
         }
         $sheet->getColumnDimensionByColumn(1)->setWidth(
@@ -1060,43 +1032,73 @@ class ExtractGrid
             }
             $this->setHeader($sheet, $col, $header, 2);
         }
-        ksort($this->wordCounts);
-        $this->wordCounts['Total'] = ['yes' => 0, 'no' => 0, '#yes' => 0, '#no' => 0];
-        foreach ($this->wordCounts as $counts) {
-            $this->wordCounts['Total']['yes'] += $counts['yes'];
-            $this->wordCounts['Total']['no'] += $counts['no'];
-            $this->wordCounts['Total']['#yes'] += $counts['#yes'];
-            $this->wordCounts['Total']['#no'] += $counts['#no'];
-        }
+        $stats = $this->countWords();
+        $columns = array_keys($stats[$statusList[0]]);
+        $totals = array_fill_keys($columns, 0);
+
         $row = 3;
         $right = $this->wordCountStyle;
         $bold = $right;
         $bold['bold'] = true;
-        foreach ($this->wordCounts as $status => $counts) {
+        foreach ($statusList as $status) {
             $col = 0;
+            $statData = $stats[$status];
             // Status
             $sheet->setCellValue([++$col, $row], $status);
             $this->formatCell($sheet, $row, $col);
-            // Active scene count
-            $sheet->setCellValue([++$col, $row], $counts['#yes']);
-            $this->formatCell($sheet, $row, $col, $right);
-            // Inactive scene count
-            $sheet->setCellValue([++$col, $row], $counts['#no']);
-            $this->formatCell($sheet, $row, $col, $right);
-            // Total scene count
-            $sheet->setCellValue([++$col, $row], $counts['#yes'] + $counts['#no']);
-            $this->formatCell($sheet, $row, $col, $bold);
-            // Active word count
-            $sheet->setCellValue([++$col, $row], $counts['yes']);
-            $this->formatCell($sheet, $row, $col, $right);
-            // Inactive word count
-            $sheet->setCellValue([++$col, $row], $counts['no']);
-            $this->formatCell($sheet, $row, $col, $right);
-            // Total word count
-            $sheet->setCellValue([++$col, $row], $counts['yes'] + $counts['no']);
-            $this->formatCell($sheet, $row, $col, $bold);
+            foreach ($columns as $column) {
+                $sheet->setCellValue([++$col, $row], $statData[$column]);
+                $this->formatCell($sheet, $row, $col, $right);
+                $totals[$column] += $statData[$column];
+            }
             ++$row;
         }
+        $col = 0;
+        // Status
+        $sheet->setCellValue([++$col, $row], 'Total');
+        $this->formatCell($sheet, $row, $col);
+        foreach ($columns as $column) {
+            $sheet->setCellValue([++$col, $row], $totals[$column]);
+            $this->formatCell($sheet, $row, $col, $right);
+        }
+    }
+
+    private function profileScenes()
+    {
+        $this->phrases = [];
+        $this->phraseColWidth = 5;
+        $this->wordDistribution = [];
+        $this->wordDistributionWidth = 0;
+        $this->wordTotal = 0;
+        foreach ($this->sceneData as $scene) {
+            $this->wordTotal += $scene->words;
+            foreach ($scene->distribution as $word => $frequency) {
+                $this->wordDistribution[$word] ??= 0;
+                $this->wordDistribution[$word] += $frequency;
+            }
+            foreach ($scene->phrases as $phrase => $frequency) {
+                $this->phrases[$phrase] ??= 0;
+                $this->phrases[$phrase] += $scene->phrases[$phrase];
+            }
+        }
+        foreach ($this->wordDistribution as $word => $frequency) {
+            if ($frequency < 10) {
+                unset($this->wordDistribution[$word]);
+                continue;
+            }
+            $this->wordDistributionWidth = max(
+                $this->wordDistributionWidth, $this->estimateWidth($word)
+            );
+        }
+        arsort($this->wordDistribution);
+        foreach ($this->phrases as $word => $frequency) {
+            if ($frequency < 10) {
+                unset($this->phrases[$word]);
+                continue;
+            }
+            $this->phraseColWidth = max($this->phraseColWidth, $this->estimateWidth($word));
+        }
+        arsort($this->phrases);
     }
 
     /**
@@ -1131,7 +1133,13 @@ class ExtractGrid
         }
     }
 
-    private function setHeader(Worksheet $sheet, int $col, string $header, $row = 1): void
+    private function setHeader(
+        Worksheet $sheet,
+        int $col,
+        string $header,
+        int $row = 1,
+        float $width = 0.0
+    ): void
     {
         $sheet->setCellValue([$col, $row], $header);
         $sheet->getStyle([$col, $row])->applyFromArray([
@@ -1141,6 +1149,25 @@ class ExtractGrid
                 'vertical' => Alignment::VERTICAL_TOP,
             ],
         ]);
+        if ($width != 0.0) {
+            $sheet->getColumnDimensionByColumn($col)->setWidth(1.4 * strlen($header));
+        }
+    }
+
+    private function setHeaders(Worksheet $sheet, array $columns): array
+    {
+        // Add and style the headers
+        $headers = $this->getHeaders($columns);
+
+        $this->maxColChars = [];
+        foreach ($headers as $col0 => $header) {
+            $col1 = $col0 + 1;
+            $this->setHeader($sheet, $col1, $header);
+            $this->maxColChars[$col1] = ceil(1.4 * strlen($header));
+        }
+        $sheet->freezePane('A2');
+
+        return $headers;
     }
 
     /**
