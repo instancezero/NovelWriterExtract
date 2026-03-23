@@ -16,7 +16,7 @@ The format is determined by the extension of the output file.
 **Note**: if the output file format is CSV, 
 only scenes will be written since CSV files don't support multiple sheets.
 
-Stand-alone binaries with no dependencies for linux, Mac,
+Stand-alone binaries with no dependencies for Linux, Mac,
 and Windows can be found in the bin/ folder.
 
 Basic usage is `novelWriterExtract nw_project_folder output_file [format_file]`
@@ -87,11 +87,9 @@ Default character columns are:
 * _sequence: a sequential character number.
 * name: The name of the note that contains the character information.
 * tag: text from the @tag directive.
-* folder: the name of the folder the character is located in.
-* given: text from a %story.given directive
-* surname: text from a %story.surname directive
-* fate:  text from a %story.fate directive
-* synopsis: text from the character's %synopsis or %story directive.
+* _folder: the name of the folder the character is located in.
+* given, surname, pronouns, age, hair, eyes, skin, build, fate: text from the related %story directives.
+* synopsis: text from the character's %synopsis or %short directive.
 
 Custom %story columns can also be defined.
 
@@ -102,6 +100,7 @@ Default location columns are:
 * _sequence: a sequential character number.
 * name: The name of the note that contains the character information.
 * tag: text from the @tag directive.
+* _folder: the name of the folder this location is contained in.
 * synopsis: text from the character's %synopsis or %story directive.
 
 Custom %story columns can also be displayed.
@@ -249,9 +248,24 @@ and create a column for secondary characters:
 }
 ```
 
+### Timelines
+
+The timelines section will list the scenes that a named character appears in. By default,
+the scene synopsis is listed, but this can be overriden by supplying a %story.of_{character_name}
+line within the scene in novelWriter.
+
+The timeline specification is just a list of character names.
+```json
+{
+  "timelines": [
+    "Jane", "Mark"
+  ]
+}
+```
+
 ### Word Counts
 
-Wordcounts produces a sheet with statistics on the novel's scenes.
+the ```wordCounts``` flag produces a sheet with statistics on the novel's scenes.
 The sheet columns tally word counts and lists the number of scenes,
 broken down by active, inactive, and total.
 The rows list this data by scene status with totals at the bottom.
@@ -267,6 +281,13 @@ they can be disabled in the JSON format specification.
 
 ## Release Notes
 
+### 1.3.1 xxxx-xx-xx
+
+- Fixed a bug where custom story attributes weren't being reported.
+- Improved default headers for custom story attributes.
+For example, %story:my_thing will use "My Thing" as the header instead of "My_thing".
+- Column headers are now frozen so they don't scroll off the sheet.
+
 ### 1.3.0 2025-11-28
 
 - Added capability to extract characters and locations
@@ -281,7 +302,7 @@ This update uses a single line feed for references, two for synopsis/story comme
 
 ### 1.2.1 2025-10-23
 
-- novelWriter 2.8 will support repeated named comments (eg. synopsis and the story tags),
+- novelWriter 2.8 will support repeated named comments (e.g. synopsis and the story tags),
 separating multiple occurrences with two line feeds. This update supports that behaviour
   (previously a repeated comment would overwrite any earlier ones.)
 

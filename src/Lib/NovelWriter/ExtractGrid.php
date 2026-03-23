@@ -800,29 +800,42 @@ class ExtractGrid
         $fw = $this->estimateWidth('Frequency');
         $this->setHeader($sheet, 1, 'Word', width: 6.0);
         $this->setHeader($sheet, 2, 'Frequency', width: $fw);
-        $this->setHeader($sheet, 4, 'Phrase', width: $this->phraseColWidth);
-        $this->setHeader($sheet, 5, 'Frequency', width: $fw);
+        $this->setHeader($sheet, 3, 'Clumpiness', width: 8.0);
+        $this->setHeader($sheet, 4, 'Avg. Clump', width: 8.0);
+        $this->setHeader($sheet, 5, '', width: 1.0);
+        $this->setHeader($sheet, 6, 'Phrase', width: $this->phraseColWidth);
+        $this->setHeader($sheet, 7, 'Frequency', width: $fw);
+        $this->setHeader($sheet, 8, 'Clumpiness', width: 8.0);
+        $this->setHeader($sheet, 9, 'Avg. Clump', width: 8.0);
 
         $sheet->getColumnDimensionByColumn(1)->setWidth($this->wordDistributionWidth);
-        $sheet->getColumnDimensionByColumn(4)->setWidth($this->phraseColWidth);
+        $sheet->getColumnDimensionByColumn(5)->setWidth($this->phraseColWidth);
 
         $row = 2;
         $right = $this->wordCountStyle;
         // Word frequency
-        foreach ($this->wordDistribution as $word => $count) {
+        foreach ($this->wordDistribution as $word => $stats) {
             // Status
             $sheet->setCellValue([1, $row], $word);
-            $sheet->setCellValue([2, $row], $count);
+            $sheet->setCellValue([2, $row], $stats['count']);
             $this->formatCell($sheet, $row, 2, $right);
+            $sheet->setCellValue([3, $row], $stats['clumpiness']);
+            $this->formatCell($sheet, $row, 3, $right);
+            $sheet->setCellValue([4, $row], round($stats['clumpiness']/$stats['count'], 2));
+            $this->formatCell($sheet, $row, 4, $right);
             ++$row;
         }
         $row = 2;
         // Status
-        foreach ($this->phrases as $word => $count) {
+        foreach ($this->phrases as $word => $stats) {
             // Status
-            $sheet->setCellValue([4, $row], $word);
-            $sheet->setCellValue([5, $row], $count);
-            $this->formatCell($sheet, $row, 5, $right);
+            $sheet->setCellValue([6, $row], $word);
+            $sheet->setCellValue([7, $row], $stats['count']);
+            $this->formatCell($sheet, $row, 7, $right);
+            $sheet->setCellValue([8, $row], $stats['clumpiness']);
+            $this->formatCell($sheet, $row, 8, $right);
+            $sheet->setCellValue([9, $row], round($stats['clumpiness']/$stats['count'], 2));
+            $this->formatCell($sheet, $row, 9, $right);
             ++$row;
         }
         $sheet->setSelectedCell('A2');
@@ -1330,16 +1343,22 @@ class ExtractGrid
         foreach ($this->sceneData as $scene) {
             $this->wordTotal += $scene->words;
             foreach ($scene->distribution as $word => $frequency) {
-                $this->wordDistribution[$word] ??= 0;
-                $this->wordDistribution[$word] += $frequency;
+                $this->wordDistribution[$word] ??= ['count' => 0, 'clumpiness' => 0];
+                $this->wordDistribution[$word]['count'] += $frequency['count'];
+                $this->wordDistribution[$word]['clumpiness'] = max(
+                    $this->wordDistribution[$word]['clumpiness'], $frequency['clumpiness']
+                );
             }
             foreach ($scene->phrases as $phrase => $frequency) {
-                $this->phrases[$phrase] ??= 0;
-                $this->phrases[$phrase] += $scene->phrases[$phrase];
+                $this->phrases[$phrase] ??= ['count' => 0, 'clumpiness' => 0];
+                $this->phrases[$phrase]['count'] += $frequency['count'];
+                $this->phrases[$phrase]['clumpiness'] = max(
+                    $this->phrases[$phrase]['clumpiness'], $frequency['clumpiness']
+                );
             }
         }
         foreach ($this->wordDistribution as $word => $frequency) {
-            if ($frequency < 10) {
+            if ($frequency['count'] < 10 && $frequency['clumpiness'] < 20.0) {
                 unset($this->wordDistribution[$word]);
                 continue;
             }
@@ -1349,7 +1368,7 @@ class ExtractGrid
         }
         arsort($this->wordDistribution);
         foreach ($this->phrases as $word => $frequency) {
-            if ($frequency < 10) {
+            if ($frequency['count'] < 10 && $frequency['clumpiness'] < 10.0) {
                 unset($this->phrases[$word]);
                 continue;
             }

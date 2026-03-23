@@ -147,35 +147,8 @@ class NovelData implements ArrayAccess
         $inUse[$command] = true;
     }
 
-    public function profileText()
+    private function profileSentences()
     {
-        $this->distribution = [];
-        $this->phrases = [];
-        $phraseTwo = [];
-        $phraseThree = [];
-        $text = implode(' ', $this->text);
-        $text = str_replace(["'", "’"], '', $text);
-        $words = str_word_count($text, 1);
-        $this->words = count($words);
-        foreach ($words as $word) {
-            $word = strtolower($word);
-            $this->distribution[$word] ??= 0;
-            ++$this->distribution[$word];
-            $phraseTwo[] = $word;
-            if (count($phraseTwo) > 2) {
-                array_shift($phraseTwo);
-                $phrase = implode(' ', $phraseTwo);
-                $this->phrases[$phrase] ??= 0;
-                ++$this->phrases[$phrase];
-            }
-            $phraseThree[] = $word;
-            if (count($phraseThree) > 3) {
-                array_shift($phraseThree);
-                $phrase = implode(' ', $phraseThree);
-                $this->phrases[$phrase] ??= 0;
-                ++$this->phrases[$phrase];
-            }
-        }
         $paragraphs = [''];
         $pNum = 0;
         foreach ($this->text as $line) {
@@ -227,6 +200,69 @@ class NovelData implements ArrayAccess
             . round($totalSentences/count($pElements), 1) . ': '
             : '';
         $this->node['_sla'] = $avg . implode(', ', $pElements);
+    }
+
+    /**
+     * Compute the frequency of words and two or three character phrases in the scene.
+     * @return void
+     */
+    public function profileText()
+    {
+        $this->distribution = [];
+        $this->phrases = [];
+        $phraseTwo = [];
+        $phraseThree = [];
+        $text = implode(' ', $this->text);
+        $text = str_replace(["'", "’"], '', $text);
+        $words = str_word_count($text, 1);
+        $this->words = count($words);
+        foreach ($words as $offset => $word) {
+            $word = strtolower($word);
+
+            // Single word count
+            $this->distribution[$word] ??= ['count' => 0, 'offsets' => []];
+            ++$this->distribution[$word]['count'];
+            $this->distribution[$word]['offsets'][] = $offset;
+
+            // Two-word phrase count
+            $phraseTwo[] = $word;
+            if (count($phraseTwo) > 2) {
+                array_shift($phraseTwo);
+                $phrase = implode(' ', $phraseTwo);
+                $this->phrases[$phrase] ??= ['count' => 0, 'offsets' => []];
+                ++$this->phrases[$phrase]['count'];
+                $this->phrases[$phrase]['offsets'][] = $offset;
+            }
+            $phraseThree[] = $word;
+            if (count($phraseThree) > 3) {
+                array_shift($phraseThree);
+                $phrase = implode(' ', $phraseThree);
+                $this->phrases[$phrase] ??= ['count' => 0, 'offsets' => []];
+                ++$this->phrases[$phrase]['count'];
+                $this->phrases[$phrase]['offsets'][] = $offset;
+            }
+        }
+        $this->computeClumpiness($this->distribution);
+        $this->computeClumpiness($this->phrases);
+        $this->profileSentences();
+    }
+
+    private function computeClumpiness(array &$distribution)
+    {
+        foreach ($distribution as &$info) {
+            $histogram = [];
+            for ($index = 0; $index < count($info['offsets']) - 1; ++$index) {
+                $delta = $info['offsets'][$index + 1] - $info['offsets'][$index];
+                $histogram[$delta] ??= 0;
+                ++$histogram[$delta];
+            }
+            $clumpiness = 0.0;
+            foreach ($histogram as $delta => $count) {
+                $clumpiness += $count / (1.0 + log($delta));
+            }
+            $info['clumpiness'] = round(100.0 * $clumpiness, 1);
+            unset($info['offsets']);
+        }
     }
 
     public function unset(string $key, mixed $index)
