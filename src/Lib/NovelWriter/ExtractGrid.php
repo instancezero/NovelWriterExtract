@@ -1280,4 +1280,25 @@ class ExtractGrid
         return $this;
     }
 
+    /**
+     * Write all sheets to the output path.
+     * @param string $path
+     * @return void
+     * @throws Exception
+     */
+    private function write(string $path): void
+    {
+        $typeMap = $this->getWriterType($path);
+        $this->spreadsheet->setActiveSheetIndex(0);
+        if ($this->verbose) {
+            echo "Writing\n";
+        }
+        $writer = IOFactory::createWriter($this->spreadsheet, $typeMap);
+        if ($writer instanceof HtmlWriter) {
+            $writer->writeAllSheets();
+        }
+        $writer->save($this->parsePath($path));
+        $this->spreadsheet->disconnectWorksheets();
+    }
+
 }
