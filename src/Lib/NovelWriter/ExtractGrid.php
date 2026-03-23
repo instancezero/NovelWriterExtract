@@ -815,6 +815,46 @@ class ExtractGrid
 
     }
 
+    /**
+     * Get a string column with a fallback to a second column if the primary is absent.
+     * @param NovelData $node
+     * @param int $sequence
+     * @param string $columnName
+     * @param string $fallbackName
+     * @return void
+     */
+    private function prepareColumnFallback(
+        NovelData $node,
+        int $sequence,
+        string $columnName,
+        string $fallbackName
+    ): void
+    {
+        switch ($columnName) {
+            case '_blank':
+                break;
+            case '_sequence':
+                $this->contentString = (string)$sequence;
+                $this->contentWidth = $this->estimateWidth($sequence);
+                $this->cellStyle['align'] = Alignment::HORIZONTAL_RIGHT;
+                break;
+            default:
+                if (isset($node[$columnName])) {
+                    $this->getNodeData($node, $columnName);
+                } else {
+                    $this->getNodeData($node, $fallbackName);
+                }
+                break;
+        }
+        $this->setCellStyle(['key' => $columnName]);
+    }
+
+    /**
+     * Get a column with a conditional/indirection.
+     * @param array $column
+     * @param NovelData $sceneData
+     * @return void
+     */
     private function prepareColumnConditional(array $column, NovelData $sceneData): void
     {
         if (isset($column['result'])) {
