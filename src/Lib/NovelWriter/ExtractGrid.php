@@ -308,6 +308,15 @@ class ExtractGrid
         return $counts;
     }
 
+    private function estimateListWidth(): float
+    {
+        $width = 0.0;
+        foreach ($this->contentList as $item) {
+            $width = max($this->contentWidth, $this->estimateWidth($item));
+        }
+        return $width;
+    }
+
     /**
      * Crudely estimate the column space required for a string.
      * @param string $text
@@ -471,10 +480,8 @@ class ExtractGrid
         $node = $sceneData[$column] ?? '';
         if (is_array($node)) {
             $this->contentWidth = 0;
-            $this->contentList = $node;
-            foreach ($node as $item) {
-                $this->contentWidth = max($this->contentWidth, $this->estimateWidth($item));
-            }
+            $this->contentList = $data;
+            $this->contentWidth = $this->estimateListWidth();
             $delimiter = ($column[0] === '@') ? "\n" : "\n\n";
             $this->contentString = implode($delimiter, $node);
         } else {
