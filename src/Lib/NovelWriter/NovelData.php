@@ -42,8 +42,16 @@ class NovelData implements ArrayAccess
 
     public function offsetExists(mixed $offset): bool
     {
-        // TODO: Implement offsetExists() method.
-        return true;
+        if (str_starts_with($offset, '_') && isset($this->node[$offset])) {
+            return isset($this->node[$offset]);
+        }
+        if (isset($this->{$offset})) {
+            return true;
+        }
+        if (isset($this->terms[$offset])) {
+            return true;
+        }
+        return false;
     }
 
     public function offsetGet(mixed $offset): mixed
