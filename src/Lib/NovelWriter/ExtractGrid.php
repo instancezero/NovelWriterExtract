@@ -396,16 +396,34 @@ class ExtractGrid
         }
     }
 
-    private function flagFirst(string $key)
+    /**
+     * If the cell has the onFirst attribute, bold the first occurrence.
+     * @param string $key
+     * @return void
+     */
+    private function flagFirst(string $key): void
     {
         if ($this->cellStyle['onFirst'] ?? false) {
             $this->seen[$key] ??= [];
-            foreach ($this->contentList as $newValue) {
+            $hasNewValue = false;
+            $newItems = [];
+            foreach ($this->contentList as $slot => $newValue) {
                 if (!in_array($newValue, $this->seen[$key])) {
                     $this->seen[$key][] = $newValue;
-                    $this->cellStyle['bold'] = true;
-                    $this->contentWidth = $this->contentWidth * 1.2;
+                    $newItems[] = $slot;
+                    $hasNewValue = true;
                 }
+            }
+            if (count($newItems) && count($newItems) != count($this->contentList)) {
+                foreach ($newItems as $slot) {
+                    $this->contentList[$slot] = "*{$this->contentList[$slot]}*";
+                }
+                $this->estimateListWidth();
+                $this->contentString = implode("\n", $this->contentList);
+            }
+            if ($hasNewValue) {
+                $this->cellStyle['bold'] = true;
+                $this->contentWidth = $this->contentWidth * self::BOLD_FACTOR;
             }
         }
     }
