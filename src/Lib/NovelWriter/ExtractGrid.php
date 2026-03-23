@@ -471,21 +471,22 @@ class ExtractGrid
     /**
      * Convert this scene data into a string, save the string in the contentString
      * and contentWidth properties.
-     * @param NovelData $sceneData
+     * @param NovelData $node
      * @param string $column
      * @return void
      */
-    private function getNodeData(NovelData $sceneData, string $column): void
+    private function getNodeData(NovelData $node, string $column): void
     {
-        $node = $sceneData[$column] ?? '';
-        if (is_array($node)) {
+        $data = $node[$column] ?? '';
+        if (is_array($data)) {
             $this->contentWidth = 0;
             $this->contentList = $data;
             $this->contentWidth = $this->estimateListWidth();
             $delimiter = ($column[0] === '@') ? "\n" : "\n\n";
-            $this->contentString = implode($delimiter, $node);
+            $this->contentString = implode($delimiter, $data);
         } else {
-            $this->contentString = preg_replace('!\s+!', ' ', $node);
+            $this->contentList = [$data];
+            $this->contentString = preg_replace('! +!', ' ', $data);
             $this->contentWidth = $this->estimateWidth($this->contentString);
         }
     }
