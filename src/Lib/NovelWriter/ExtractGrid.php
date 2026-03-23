@@ -26,7 +26,7 @@ use SimpleXMLElement;
 
 class ExtractGrid
 {
-    const string STRUCTURE_KEYWORD = 'story';
+    const float BOLD_FACTOR = 1.2;
     /**
      * @var array|mixed
      */
@@ -53,7 +53,10 @@ class ExtractGrid
     protected array $characterAttributes = [];
     protected array $characterData = [];
     protected array $characterFiles = [];
-    protected array $commentBuffer;
+    /**
+     * @var array|float[]
+     */
+    protected array $columnWidth;
     protected array $contentList;
     /**
      * @var array|mixed|string|string[]|null
@@ -87,40 +90,21 @@ class ExtractGrid
         '_sla' => 'Sentence Lengths',
         '_status' => 'Status',
         'about' => 'This NovelData is About',
-        //'age' => 'Age',
-        //'appearance' => 'Appearance',
         'aural' => 'Environmental Sounds',
-        //'climax' => 'Climax',
-        //'clothing' => 'Clothing',
         'comments' => 'Additional Notes',
         'complication' => 'Complication(s)',
-        //'crisis' => 'Crisis',
-        //'duration' => 'Duration',
-        //'emotions' => 'Emotions',
-        //'fate' => 'Fate',
-        //'given' => 'Given',
-        //'goal' => 'Goal',
-        //'hair' => 'Hair',
         'impact' => 'Impact of the scene',
         'incite' => 'Inciting Incident',
-        //'name' => 'Name',
         'others' => 'Off-stage Characters',
-        //'pace' => 'Pace',
         'polarity' => 'Polarity Shift',
-        //'pronouns' => 'Pronouns',
         'prose' => 'Prose Quality/Cadence',
-        //'purpose' => 'Purpose',
         'resolution' => '(Non-)Resolution',
         'smell' => 'Environmental Smells',
-        //'surname' => 'Surname',
-        //'synopsis' => 'Synopsis',
         'time' => 'Period/Time',
         'tod' => 'Time of Day',
         'touch' => 'Tactile',
         'turning' => 'Turning Point',
         'value' => 'Value Shift',
-        //'weather' => 'Weather',
-        //'words' => 'Words',
     ];
     protected array $inUse = [];
     /**
@@ -137,18 +121,14 @@ class ExtractGrid
     protected array $locationData;
     protected array $locationFiles;
     /**
-     * @var array|float[]
-     */
-    protected array $maxColChars;
-    /**
      * @var false|mixed
      */
     protected bool $onFirst;
+    protected float $phraseColWidth;
     /**
      * @var array|array[]
      */
     protected array $phrases;
-    protected float $phraseColWidth;
     protected SimpleXMLElement $project;
     /**
      * @var array|string[] Attributes associated with scene nodes
@@ -201,7 +181,6 @@ class ExtractGrid
         'comments',
     ];
     protected array $sceneAttributes = [];
-    protected array $sceneBuffer;
     /**
      * @var array[NovelData]
      */
@@ -209,7 +188,7 @@ class ExtractGrid
     protected array $sceneFiles = [];
     protected NovelWriterFileLoader $sceneLoader;
     protected array $seen = [];
-    private $sheetIndex = 0;
+    private int $sheetIndex = 0;
     protected string $sourcePath;
     protected Spreadsheet $spreadsheet;
     /**
@@ -260,6 +239,11 @@ class ExtractGrid
         return array_values($attributes);
     }
 
+    /**
+     * Make sure we have a valid output type.
+     * @param string $path
+     * @return array
+     */
     public function checkOutputPath(string $path): array
     {
         $resolved = $this->parsePath($path);
@@ -272,6 +256,10 @@ class ExtractGrid
         return $result;
     }
 
+    /**
+     * Check the path to ensure a novelWriter project exists there.
+     * @return bool
+     */
     public function checkProject(): bool
     {
         if (!isset($this->sourcePath)) {
@@ -286,7 +274,20 @@ class ExtractGrid
     }
 
     /**
-     * Get word counts by scene status, active state
+     * Reset the variables associated with building a cell.
+     * @return void
+     */
+    private function clearCellData(): void
+    {
+        $this->contentString = '';
+        $this->contentList = [];
+        $this->contentWidth = 0.0;
+        $this->cellStyle = [];
+        $this->onFirst = false;
+    }
+
+    /**
+     * Get word counts by scene status, active state.
      * @return array
      */
     private function countWords(): array
@@ -375,17 +376,7 @@ class ExtractGrid
             $this->spreadsheet = new Spreadsheet();
             $this->sheetIndex = 0;
             $this->prepareSheets($format);
-            $typeMap = $this->getWriterType($path);
-            $this->spreadsheet->setActiveSheetIndex(0);
-            if ($this->verbose) {
-                echo "Writing\n";
-            }
-            $writer = IOFactory::createWriter($this->spreadsheet, $typeMap);
-            if ($writer instanceof HtmlWriter) {
-                $writer->writeAllSheets();
-            }
-            $writer->save($this->parsePath($path));
-            $this->spreadsheet->disconnectWorksheets();
+            $this->write($path);
             unset($this->spreadsheet);
         } catch (Exception $exception) {
             echo 'Exception: ' . $exception->getMessage();
@@ -428,6 +419,14 @@ class ExtractGrid
         }
     }
 
+    /**
+     * Set the formatting for a cell.
+     * @param Worksheet $sheet
+     * @param int $row
+     * @param int $col
+     * @param array $specs
+     * @return void
+     */
     private function formatCell(
         Worksheet $sheet,
         int $row,
@@ -451,6 +450,36 @@ class ExtractGrid
         $sheet->getStyle([$col, $row])->applyFromArray($style);
     }
 
+    /**
+     * Get a list of scenes that reference the named character.
+     * @param string $character
+     * @return array
+     */
+    private function getCharacterScenes(string $character): array
+    {
+        $character = strtolower($character);
+        $nodeList = [];
+        foreach ($this->sceneData as $node) {
+            // if the node references the character...
+            $sceneCharacters = $node['@char'];
+            if ($sceneCharacters) {
+                foreach ($sceneCharacters as $sceneCharacter) {
+                    if ($character === strtolower($sceneCharacter)) {
+                        $nodeList[] = $node;
+                        break;
+                    }
+                }
+            }
+        }
+        return $nodeList;
+    }
+
+    /**
+     * Get a user provided column list, the default list, or false for no columns.
+     * @param mixed $option
+     * @param array $default
+     * @return array|false
+     */
     private function getColumns(mixed $option, array $default): array|false
     {
         // If the column specification is 'true', then include all columns.
@@ -461,23 +490,28 @@ class ExtractGrid
     }
 
     /**
-     * Prepare an array of header texts from a list of column keys (adds col0 so the indexed from 1)
+     * Prepare an array of header texts from a list of column keys
      * @param array $columns
+     * @param array $overrides
      * @return string[]
      */
-    private function getHeaders(array $columns): array
+    private function getHeaders(array $columns, array $overrides = []): array
     {
         $headers = [];
         foreach ($columns as $column) {
             if (is_array($column) && ($column['heading'] ?? false)) {
                 $headers[] = $column['heading'];
             } elseif (is_string($column)) {
-                if ((self::$headerText[$column] ?? false)) {
-                    $headers[] = self::$headerText[$column];
+                if ($overrides[$column] ?? false) {
+                    $headers[] = $overrides[$column];
                 } else {
-                    $words = explode('_', $column);
-                    $words = array_map(fn($word):string => ucfirst($word), $words);
-                    $headers[] = implode(' ', $words);
+                    if ((self::$headerText[$column] ?? false)) {
+                        $headers[] = self::$headerText[$column];
+                    } else {
+                        $words = explode('_', $column);
+                        $words = array_map(fn($word): string => ucfirst($word), $words);
+                        $headers[] = implode(' ', $words);
+                    }
                 }
             } else {
                 $headers[] = '????';
@@ -527,6 +561,7 @@ class ExtractGrid
     }
 
     /**
+     * Use the output path to determine the type of writer to use.
      * @param string $path
      * @return string
      * @throws Exception
@@ -543,12 +578,6 @@ class ExtractGrid
         };
     }
 
-    private function isScene(string $line): bool
-    {
-        return str_starts_with($line, '### ')
-            || str_starts_with($line, '###! ');
-    }
-
     private function loadCharacters(): void
     {
         $this->inUse = [
@@ -563,8 +592,9 @@ class ExtractGrid
     }
 
     /**
+     * Get the contents of a novelWriter data file as a NodeData object.
      * @param array $file
-     * @return void
+     * @return NovelData
      */
     private function loadFile(array $file): NovelData
     {
@@ -576,6 +606,10 @@ class ExtractGrid
         return $loader->loadFile($file, $markdown, $this->inUse);
     }
 
+    /**
+     * Load a novelWriter file in the locations tree.
+     * @return void
+     */
     private function loadLocations(): void
     {
         $this->inUse = [
@@ -660,6 +694,10 @@ class ExtractGrid
         }
     }
 
+    /**
+     * Load the novelWriter scene files.
+     * @return void
+     */
     private function loadScenes(): void
     {
         $this->inUse = [
@@ -739,8 +777,23 @@ class ExtractGrid
         return $path;
     }
 
-    private function prepareAnalysis(): bool
+    /**
+     * Generate the story word frequency analysis sheet.
+     * @param bool $newSheet
+     * @return bool
+     */
+    private function prepareAnalysis(bool $newSheet): bool
     {
+        if (count($this->wordDistribution) === 0 && count($this->phrases) === 0) {
+            return $newSheet;
+        }
+        if ($this->verbose) {
+            echo "Preparing Analysis\n";
+        }
+        if ($newSheet) {
+            $this->spreadsheet->createSheet();
+            ++$this->sheetIndex;
+        }
         $sheet = $this->spreadsheet->getSheet($this->sheetIndex);
         $sheet->setTitle('Analysis');
 
@@ -772,14 +825,30 @@ class ExtractGrid
             $this->formatCell($sheet, $row, 5, $right);
             ++$row;
         }
+        $sheet->setSelectedCell('A2');
+
         return true;
     }
 
-    private function prepareCharacters()
+    /**
+     * Generate the character sheet.
+     * @param bool $newSheet
+     * @return bool
+     * @throws LogicException
+     */
+    private function prepareCharacters(bool $newSheet): bool
     {
         $columns = $this->formats['characters'] ?? true;
-        if ($columns === false) {
-            return false;
+        if ($columns === false || count($this->characterData) === 0) {
+            return $newSheet;
+        }
+        if ($this->verbose) {
+            echo "Preparing Characters\n";
+        }
+        if ($newSheet) {
+            $this->spreadsheet->createSheet();
+            ++$this->sheetIndex;
+            $this->columnWidth = [];
         }
         $columns = $this->getColumns($columns, $this->characterAttributes);
         // Add and style the headers
@@ -792,27 +861,34 @@ class ExtractGrid
         $this->prepareColumns($sheet, $this->characterData, $columns, $headers);
 
         $this->setColumnWidths($sheet, $headers);
+        $sheet->setSelectedCell('A2');
 
         return true;
     }
 
-    private function prepareColumn(array $column, NovelData $sceneData): void
+    /**
+     * Get a column with customization
+     * @param array $column
+     * @param NovelData $node
+     * @return void
+     */
+    private function prepareColumnCustom(array $column, NovelData $node): void
     {
+        $nodeCopy = clone $node;
         // Check for renamed header and/or filtered data
-        if (($column['exclude'] ?? false) && ($sceneData[$column['key']] ?? false)) {
-            if (is_array($sceneData[$column['key']])) {
-                foreach ($sceneData[$column['key']] as $index => $value) {
+        if (($column['exclude'] ?? false) && ($nodeCopy[$column['key']] ?? false)) {
+            if (is_array($nodeCopy[$column['key']])) {
+                foreach ($nodeCopy[$column['key']] as $index => $value) {
                     if (in_array($value, $column['exclude'])) {
-                        $sceneData->unset($column['key'], $index);
+                        $nodeCopy->unset($column['key'], $index);
                     }
                 }
-            } elseif (in_array($sceneData[$column['key']], $column['exclude'])) {
-                $sceneData[$column['key']] = '';
+            } elseif (in_array($nodeCopy[$column['key']], $column['exclude'])) {
+                $nodeCopy[$column['key']] = '';
             }
         }
-        $this->getNodeData($sceneData, $column['key']);
+        $this->getNodeData($nodeCopy, $column['key']);
         $this->setCellStyle($column);
-
     }
 
     /**
@@ -909,7 +985,7 @@ class ExtractGrid
      * @param array $columns
      * @param array $headers
      * @return int
-     * @throws \Abivia\Criteria\LogicException
+     * @throws LogicException
      */
     private function prepareColumns(
         Worksheet $sheet,
@@ -933,25 +1009,9 @@ class ExtractGrid
             foreach ($columns as $columnSpecification) {
                 $col1 = $col0 + 1;
                 $seenKey = $headers[$col0];
-                $this->contentString = '';
-                $this->contentList = [];
-                $this->contentWidth = 0;
-                $this->cellStyle = [];
-                $this->onFirst = false;
+                $this->clearCellData();
                 if (is_string($columnSpecification)) {
-                    switch ($columnSpecification) {
-                        case '_blank':
-                            break;
-                        case '_sequence':
-                            $this->contentString = (string)$sequence;
-                            $this->contentWidth = $this->estimateWidth($sequence);
-                            $this->cellStyle['align'] = Alignment::HORIZONTAL_RIGHT;
-                            break;
-                        default:
-                            $this->getNodeData($node, $columnSpecification);
-                            break;
-                    }
-                    $this->setCellStyle(['key' => $columnSpecification]);
+                    $this->prepareColumnSimple($node, $sequence, $columnSpecification);
                 } elseif (isset($columnSpecification['test'])) {
                     // Conditional data in this column
                     $included = $criteria->evaluate($columnSpecification['test'],
@@ -964,13 +1024,13 @@ class ExtractGrid
                     }
                 } elseif (isset($columnSpecification['key'])) {
                     // Renamed header and/or filtered data
-                    $this->prepareColumn($columnSpecification, $node);
+                    $this->prepareColumnCustom($columnSpecification, $node);
                 }
-                ++$this->contentWidth;
                 $this->flagFirst($seenKey);
+                ++$this->contentWidth;
                 $sheet->setCellValue([$col1, $row], $this->contentString);
                 $this->formatCell($sheet, $row, $col1, $this->cellStyle);
-                $this->maxColChars[$col1] = max($this->maxColChars[$col1], $this->contentWidth);
+                $this->columnWidth[$col1] = max($this->columnWidth[$col1], $this->contentWidth);
                 ++$col0;
             }
             ++$row;
@@ -979,11 +1039,25 @@ class ExtractGrid
         return $row;
     }
 
-    private function prepareLocations(): bool
+    /**
+     * Generate the locations sheet.
+     * @param bool $newSheet
+     * @return bool
+     * @throws LogicException
+     */
+    private function prepareLocations(bool $newSheet): bool
     {
         $columns = $this->formats['locations'] ?? true;
-        if ($columns === false) {
-            return false;
+        if ($columns === false || count($this->locationData) === 0) {
+            return $newSheet;
+        }
+        if ($this->verbose) {
+            echo "Preparing Locations\n";
+        }
+        if ($newSheet) {
+            $this->spreadsheet->createSheet();
+            ++$this->sheetIndex;
+            $this->columnWidth = [];
         }
         $columns = $this->getColumns($columns, $this->locationAttributes);
         // Add and style the headers
@@ -996,19 +1070,25 @@ class ExtractGrid
         $this->prepareColumns($sheet, $this->locationData, $columns, $headers);
 
         $this->setColumnWidths($sheet, $headers);
+        $sheet->setSelectedCell('A2');
 
         return true;
     }
 
     /**
+     * Generate a scenes sheet
      * @throws LogicException
      */
     private function prepareScenes(): bool
     {
         $columns = $this->formats['scenes'] ?? ($this->formats['columns'] ?? true);
-        if ($columns === false) {
+        if ($columns === false || count($this->sceneData) === 0) {
             return false;
         }
+        if ($this->verbose) {
+            echo "Preparing Scenes\n";
+        }
+        $this->columnWidth = [];
         $columns = $this->getColumns($columns, $this->sceneAttributes);
         $sheet = $this->spreadsheet->getActiveSheet();
         $sheet->setTitle('Scenes');
@@ -1044,10 +1124,18 @@ class ExtractGrid
         }
 
         $this->setColumnWidths($sheet, $headers);
+        $sheet->setSelectedCell('A2');
 
         return true;
     }
 
+    /**
+     * Generate all sheets.
+     * @param string $formatPath
+     * @return void
+     * @throws LogicException
+     * @throws Exception
+     */
     private function prepareSheets(string $formatPath): void
     {
         if ($formatPath === '') {
@@ -1059,67 +1147,130 @@ class ExtractGrid
             }
         }
         $this->wordCountStyle = self::$styles['words'];
-        if ($this->verbose) {
-            echo "Preparing Scenes\n";
-        }
         $hadContent = $this->prepareScenes();
         if ($this->formats['wordCounts'] ?? true) {
-            if ($hadContent) {
-                $this->spreadsheet->createSheet();
-                ++$this->sheetIndex;
-                $this->spreadsheet->setActiveSheetIndex($this->sheetIndex);
-            }
-            if ($this->verbose) {
-                echo "Preparing Statistics\n";
-            }
-            $this->prepareWordCounts();
-            $hadContent = true;
+            $hadContent = $this->prepareWordCounts($hadContent);
         }
         if ($this->formats['characters'] ?? true) {
-            if ($hadContent) {
-                $this->spreadsheet->createSheet();
-                ++$this->sheetIndex;
-            }
-            if ($this->verbose) {
-                echo "Preparing Characters\n";
-            }
-            $hadContent = $this->prepareCharacters();
+            $hadContent = $this->prepareCharacters($hadContent);
         }
         if ($this->formats['locations'] ?? true) {
-            if ($hadContent) {
-                $this->spreadsheet->createSheet();
-                ++$this->sheetIndex;
+            $hadContent = $this->prepareLocations($hadContent);
+        }
+        $timelines = $this->formats['timelines'] ?? false;
+        if ($timelines !== false) {
+            $timeLineFloor = is_numeric($timelines) ? $timelines : 1;
+            if (!is_array($timelines)) {
+                $timelines = [];
+                foreach ($this->characterData as $characterNode) {
+                    if ($characterNode['@tag']) {
+                        $timelines[] = $characterNode['@tag'][0];
+                    }
+                }
+                sort($timelines);
             }
-            if ($this->verbose) {
-                echo "Preparing Locations\n";
+            foreach ($timelines as $character) {
+                $nodeList = $this->getCharacterScenes($character);
+                if (count($nodeList) >= $timeLineFloor) {
+                    $this->prepareTimeline($hadContent, $nodeList, $character);
+                    $hadContent = true;
+                }
             }
-            $hadContent = $this->prepareLocations();
         }
         if ($this->formats['analysis'] ?? true) {
-            if ($hadContent) {
-                $this->spreadsheet->createSheet();
-                ++$this->sheetIndex;
-            }
-            if ($this->verbose) {
-                echo "Preparing Analysis\n";
-            }
-            $hadContent = $this->prepareAnalysis();
+            $hadContent = $this->prepareAnalysis($hadContent);
         }
     }
 
-    private function prepareWordCounts(): void
+    /**
+     * Generate a timeline sheet for the named character.
+     * @param bool $newSheet
+     * @param array $nodeList
+     * @param string $character
+     * @return void
+     */
+    private function prepareTimeline(bool $newSheet, array $nodeList, string $character): void
     {
+        if ($newSheet) {
+            $this->spreadsheet->createSheet();
+            ++$this->sheetIndex;
+            $this->columnWidth = [];
+        }
+        if ($this->verbose) {
+            echo "Preparing timeline for $character\n";
+        }
+        $columns = ['_sequence', 'name', 'time', 'synopsis'];
+        $columns = $this->getColumns($columns, $this->characterAttributes);
+        // Add and style the headers
+        $sheet = $this->spreadsheet->getSheet($this->sheetIndex);
+        $sheet->setTitle($character);
+
+        $headers = $this->setHeaders(
+            $sheet,
+            $columns,
+            ['time' => 'Time','name' => 'Scene', 'synopsis' => 'Storyline/Synopsis']
+        );
+        $storyLineKey = strtolower("of_$character");
+
+        // Now add the data
+        $lastNovel = '';
+        $sequence = 0;
+        $row = 2;
+        foreach ($nodeList as $node) {
+            if (($node['_novel'] ?? '') !== $lastNovel) {
+                $sequence = 0;
+                $lastNovel = $node['_novel'];
+            }
+            ++$sequence;
+            $col0 = 0;
+            foreach ($columns as $columnSpecification) {
+                $col1 = $col0 + 1;
+                $this->clearCellData();
+                if ($columnSpecification === 'synopsis') {
+                    $this->prepareColumnFallback($node, $sequence, $storyLineKey, 'synopsis');
+                } else {
+                    $this->prepareColumnSimple($node, $sequence, $columnSpecification);
+                }
+                ++$this->contentWidth;
+                $sheet->setCellValue([$col1, $row], $this->contentString);
+                $this->formatCell($sheet, $row, $col1, $this->cellStyle);
+                $this->columnWidth[$col1] = max($this->columnWidth[$col1], $this->contentWidth);
+                ++$col0;
+            }
+            ++$row;
+        }
+
+        $this->setColumnWidths($sheet, $headers);
+        $sheet->setSelectedCell('A2');
+    }
+
+    /**
+     * Generate the statistics sheet.
+     * @param bool $newSheet
+     * @return bool
+     */
+    private function prepareWordCounts(bool $newSheet): bool
+    {
+        if (count($this->sceneData) === 0) {
+            return $newSheet;
+        }
+        if ($this->verbose) {
+            echo "Preparing Statistics\n";
+        }
+        if ($newSheet) {
+            $this->spreadsheet->createSheet();
+            ++$this->sheetIndex;
+            $this->columnWidth = [];
+        }
         $sheet = $this->spreadsheet->getSheet($this->sheetIndex);
         $sheet->setTitle('Statistics');
-        $maxStatusChars = 6;
+        $statusWidth = $this->estimateWidth('Status');
         $statusList = array_keys($this->sceneLoader->sceneStatusList);
         sort($statusList);
         foreach ($statusList as $status) {
-            $maxStatusChars = max($maxStatusChars, strlen($status));
+            $statusWidth = max($statusWidth, $this->estimateWidth($status));
         }
-        $sheet->getColumnDimensionByColumn(1)->setWidth(
-            1.4 * $maxStatusChars
-        );
+        $sheet->getColumnDimensionByColumn(1)->setWidth($statusWidth);
         $this->setHeader($sheet, 2, 'Scenes');
         $this->setHeader($sheet, 5, 'Words');
         $headerLabels = [
@@ -1160,9 +1311,16 @@ class ExtractGrid
             $sheet->setCellValue([++$col, $row], $totals[$column]);
             $this->formatCell($sheet, $row, $col, $right);
         }
+        $sheet->setSelectedCell('A2');
+
+        return true;
     }
 
-    private function profileScenes()
+    /**
+     * Profile the scenes to get word and phrase repetition counts.
+     * @return void
+     */
+    private function profileScenes(): void
     {
         $this->phrases = [];
         $this->phraseColWidth = 5;
@@ -1203,9 +1361,9 @@ class ExtractGrid
     /**
      * Use a column definition to set attributes of the cell.
      * @param array $column
-     * @return self
+     * @return void
      */
-    private function setCellStyle(array $column): self
+    private function setCellStyle(array $column): void
     {
         if ($column['key'] ?? false) {
             $style = $this->getStyle($column['key']);
@@ -1216,22 +1374,43 @@ class ExtractGrid
             $style = array_merge($style, $column['style']);
         }
         $this->cellStyle = $style;
-
-        return $this;
     }
 
-    private function setColumnWidths(Worksheet $sheet, array $headers)
+    /**
+     * Set the width of a column.
+     * @param Worksheet $sheet
+     * @param int $col
+     * @param float $width
+     * @return void
+     */
+    private function setColumnWidth(Worksheet $sheet, int $col, float $width): void
+    {
+        $sheet->getColumnDimensionByColumn($col)->setWidth($width);
+    }
+
+    private function setColumnWidths(Worksheet $sheet, array $headers): void
     {
         // Set column widths
         for ($index = 1; $index <= count($headers); ++$index) {
-            if (isset($this->maxColChars[$index])) {
-                $sheet->getColumnDimensionByColumn($index)->setWidth(
-                    min($this->maxColChars[$index], $this->formats['wrap'] ?? $this->wrapSize)
+            if (isset($this->columnWidth[$index])) {
+                $this->setColumnWidth(
+                    $sheet,
+                    $index,
+                    min($this->columnWidth[$index], $this->formats['wrap'] ?? $this->wrapSize)
                 );
             }
         }
     }
 
+    /**
+     * Set a header cell.
+     * @param Worksheet $sheet
+     * @param int $col
+     * @param string $header
+     * @param int $row
+     * @param float $width
+     * @return void
+     */
     private function setHeader(
         Worksheet $sheet,
         int $col,
@@ -1249,20 +1428,27 @@ class ExtractGrid
             ],
         ]);
         if ($width != 0.0) {
-            $sheet->getColumnDimensionByColumn($col)->setWidth(1.4 * strlen($header));
+            $this->setColumnWidth($sheet, $col, $this->estimateWidth($header, true));
         }
     }
 
-    private function setHeaders(Worksheet $sheet, array $columns): array
+    /**
+     * Set headers for a list of columns.
+     * @param Worksheet $sheet
+     * @param array $columns
+     * @param array $overrides
+     * @return string[]
+     */
+    private function setHeaders(Worksheet $sheet, array $columns, array $overrides = []): array
     {
         // Add and style the headers
-        $headers = $this->getHeaders($columns);
+        $headers = $this->getHeaders($columns, $overrides);
 
-        $this->maxColChars = [];
+        $this->columnWidth = [];
         foreach ($headers as $col0 => $header) {
             $col1 = $col0 + 1;
             $this->setHeader($sheet, $col1, $header);
-            $this->maxColChars[$col1] = ceil(1.4 * strlen($header));
+            $this->columnWidth[$col1] = $this->estimateWidth($header, true);
         }
         $sheet->freezePane('A2');
 
