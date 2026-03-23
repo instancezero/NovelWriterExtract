@@ -311,17 +311,26 @@ class ExtractGrid
     /**
      * Crudely estimate the column space required for a string.
      * @param string $text
+     * @param bool $bold
      * @return float
      */
-    private function estimateWidth(string $text): float
+    private function estimateWidth(string $text, bool $bold = false): float
     {
-        // Get rid of anything that's not a "wide" character.
-        $wide = 0.6 * strlen(preg_replace('/[^mwA-HJ-LNP-VXZ0-9]/', '', $text));
-        // Same with "wider"
-        $wider = 0.8 * strlen(preg_replace('/[^MOQW]/', '', $text));
-        // Same with "narrower"
-        $narrower = 0.6 * strlen(preg_replace('/[^ilI|)(}{ !\'.;:`]/', '', $text));
-        return 1.05 * strlen($text) + $wide + $wider - $narrower;
+        $width = 0.0;
+        $lines = explode("\n", $text);
+        foreach ($lines as $line) {
+            // Filter anything that's not a "wide" character.
+            $wide = 0.6 * strlen(preg_replace('/[^mwA-HJ-LNP-VXZ0-9]/', '', $line));
+            // Same with "wider"
+            $wider = 0.8 * strlen(preg_replace('/[^MOQW]/', '', $line));
+            // Same with "narrower"
+            $narrower = 0.6 * strlen(preg_replace('/[^iltI|)(}{ !\'.;:`]/', '', $line));
+            $width = max($width, 1.05 * strlen($text) + $wide + $wider - $narrower);
+        }
+        if ($bold) {
+            $width *= self::BOLD_FACTOR;
+        }
+        return $width;
     }
 
     /**
