@@ -1,8 +1,8 @@
 %%~name: Jane Smith
 %%~path: f7e2d9f330615/bb2c23b3c42cc
 %%~kind: CHARACTER/NOTE
-%%~hash: 6facc01f439c099c0ca253cb7a40ff778845aec8
-%%~date: Unknown/2025-11-22 12:35:09
+%%~hash: 30b767ce43a001eb48b32816e866b430cab76a03
+%%~date: Unknown/2025-11-30 15:44:55
 # Jane Smith
 
 @tag: Jane | Jane Smith
@@ -12,5 +12,6 @@
 %story.surname: Smith
 %story.pronouns: she/her
 %story.fate: Finds John
+%story.age: 28
 
 She’s pretty cool. Not Angelina Jolie though.

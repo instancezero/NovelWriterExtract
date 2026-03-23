@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
-<novelWriterXML appVersion="2.8b1" hexVersion="0x020800b1" fileVersion="1.5" fileRevision="6" timeStamp="2025-11-22 12:35:09">
-  <project id="e2be99af-f9bf-4403-857a-c3d1ac25abea" saveCount="2175" autoCount="316" editTime="231952">
+<novelWriterXML appVersion="2.8rc1" hexVersion="0x020800c1" fileVersion="1.5" fileRevision="6" timeStamp="2025-12-05 10:41:04">
+  <project id="e2be99af-f9bf-4403-857a-c3d1ac25abea" saveCount="2180" autoCount="323" editTime="316339">
     <name>Sample Project</name>
     <author>Jane Smith</author>
   </project>
@@ -9,7 +9,7 @@
     <language>en_GB</language>
     <spellChecking auto="yes">None</spellChecking>
     <lastHandle>
-      <entry key="editor">bb2c23b3c42cc</entry>
+      <entry key="editor">bc0cbd2a407f3</entry>
       <entry key="viewer">636b6aa9b697b</entry>
       <entry key="novel">7031beac91f75</entry>
       <entry key="outline">7031beac91f75</entry>
@@ -58,7 +58,7 @@
       <name status="sf24ce6" import="ia857f0" active="yes">Chapter One</name>
     </item>
     <item handle="636b6aa9b697b" parent="6a2d6d5f4f401" root="7031beac91f75" order="0" type="FILE" class="NOVEL" layout="DOCUMENT">
-      <meta expanded="no" heading="H3" charCount="2999" wordCount="530" paraCount="16" cursorPos="388" />
+      <meta expanded="no" heading="H3" charCount="2999" wordCount="530" paraCount="16" cursorPos="1019" />
       <name status="s90e6c9" import="ia857f0" active="yes">Making a Scene</name>
     </item>
     <item handle="bc0cbd2a407f3" parent="6a2d6d5f4f401" root="7031beac91f75" order="1" type="FILE" class="NOVEL" layout="DOCUMENT">
@@ -106,7 +106,7 @@
       <name status="sf12341" import="i2d7a54" active="yes">John Smith</name>
     </item>
     <item handle="bb2c23b3c42cc" parent="f7e2d9f330615" root="f6622b4617424" order="1" type="FILE" class="CHARACTER" layout="NOTE">
-      <meta expanded="no" heading="H1" charCount="55" wordCount="9" paraCount="1" cursorPos="125" />
+      <meta expanded="no" heading="H1" charCount="55" wordCount="9" paraCount="1" cursorPos="164" />
       <name status="sf12341" import="i56be10" active="yes">Jane Smith</name>
     </item>
     <item handle="15c4492bd5107" parent="None" root="15c4492bd5107" order="3" type="ROOT" class="WORLD">

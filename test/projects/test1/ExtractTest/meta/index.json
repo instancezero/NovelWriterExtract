@@ -1,7 +1,7 @@
 {
   "novelWriter.meta": {
-    "version": "0x020800b1",
-    "timestamp": "2025-11-22 12:35:09"
+    "version": "0x020800c1",
+    "timestamp": "2025-12-05 10:41:04"
   },
   "novelWriter.tagsIndex": {
     "john": {"name": "John", "display": "John Smith", "handle": "14298de4d9524", "heading": "T0001", "class": "CHARACTER"},
@@ -41,7 +41,7 @@
         "story.duration": "5m",
         "story.pace": "slow, informative",
         "story.incite": "Someone installed novelWriter and opened the sample project",
-        "story.complication": "A new update allows duplicate tags of the same name",
+        "story.complication": "Has previously used other software and is disoriented by the interface\n\nA new update allows duplicate tags of the same name",
         "story.turning": "Realizes that Markdown syntax is actually very easy to understand and use.",
         "story.crisis": "Fears the reader needs to learn a completely new language, \u201cMarkdown\u201d",
         "story.resolution": "Axniety about learning a new thing has been addressed.",
@@ -49,13 +49,14 @@
         "story.goal": "Demonstrate that it\u2019s worth exploring the next scene",
         "story.appearance": "A nominally clean, sparse apartment in a high rise tower.",
         "story.prose": "friendly although technical",
-        "story.emotions": "bewilderment, fear."
+        "story.emotions": "bewilderment, fear.",
+        "story.user_defined": "something."
       },
       "T0002": {
-        "meta": {"level": "H4", "title": "Some Section Here", "line": 47, "tag": "", "counts": [432, 80, 2]}
+        "meta": {"level": "H4", "title": "Some Section Here", "line": 48, "tag": "", "counts": [432, 80, 2]}
       },
       "T0003": {
-        "meta": {"level": "H4", "title": "Text Alignment and Indentation", "line": 53, "tag": "", "counts": [580, 107, 6]}
+        "meta": {"level": "H4", "title": "Text Alignment and Indentation", "line": 54, "tag": "", "counts": [580, 107, 6]}
       },
       "document": {
         "footnotes": ["f4xr5"]
@@ -144,7 +145,8 @@
         "story.given": "Jane",
         "story.surname": "Smith",
         "story.pronouns": "she/her",
-        "story.fate": "Finds John"
+        "story.fate": "Finds John",
+        "story.age": "28"
       }
     },
     "b3e74dbc1f584": {

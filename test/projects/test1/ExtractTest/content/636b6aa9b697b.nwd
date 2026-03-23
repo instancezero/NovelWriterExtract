@@ -1,8 +1,8 @@
 %%~name: Making a Scene
 %%~path: 6a2d6d5f4f401/636b6aa9b697b
 %%~kind: NOVEL/DOCUMENT
-%%~hash: 4a7b3e9a3667c96f9f54a001674de2264f8778b6
-%%~date: Unknown/2025-10-23 12:33:19
+%%~hash: 3027da0a2341cfc974bcaa281ea6cbb51f04c076
+%%~date: Unknown/2025-11-30 16:35:55
 ### Making a Scene
 
 @pov: Jane
@@ -18,18 +18,19 @@
 %story.complication: A new update allows duplicate tags of the same name
 %story.turning: Realizes that Markdown syntax is actually very easy to understand and use.
 %story.crisis: Fears the reader needs to learn a completely new language, “Markdown”
-%story.climax: 
+%story.climax:
 %story.resolution: Axniety about learning a new thing has been addressed.
 %story.purpose: Introduce new users to the basics of novelWriter
 %story.goal: Demonstrate that it’s worth exploring the next scene
 
 %story.appearance: A nominally clean, sparse apartment in a high rise tower.
-%story.touch: 
-%story.aural: 
-%story.smell: 
-%story.clothing: 
+%story.touch:
+%story.aural:
+%story.smell:
+%story.clothing:
 %story.prose: friendly although technical
 %story.emotions: bewilderment, fear.
+%story.user_defined: something.
 
 A scene is defined by a level three heading, like the one at the top of this page. The scene will be assigned to the chapter preceding it in the project tree. The scene document can be sorted after the chapter document, or as a child of the chapter. Both result in the same output in the end, so it is a matter of preference.
 

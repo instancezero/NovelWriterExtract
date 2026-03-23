@@ -1,15 +1,14 @@
-"Novel","#","Active","Name","Words","Status","Synopsis","Value Shift","Polarity Shift","Purpose","Inciting Incident","Goal","Complication(s)","Turning Point","Crisis","Climax","(Non-)Resolution","This Scene is About","Impact of the scene","Point of View","Plot","Period/Time","Time of Day","Duration","Location(s)","Timelines","Focus Character","Characters","Off-stage Characters","Entities","Objects","Custom","Mentions","References","Pace","Weather","Appearance","Tactile","Environmental Sounds","Environmental Smells","Clothing","Prose Quality/Cadence","Emotions","Additional Notes"
-"","1","","","","","","","","","","","","","","","","","","Jane","","","","","Earth","","","","","","","","","","","","","","","","","","",""
-"Novel","1","yes","Making a Scene","534","1st Draft","","","","Introduce new users to the basics of novelWriter","Someone installed novelWriter and opened the sample project","Demonstrate that it’s worth exploring the next scene","Has previously used other software and is disoriented by the interface
+"Active","Name","Words","Status","Synopsis","Purpose","Inciting Incident","Goal","Complication(s)","Turning Point","Crisis","(Non-)Resolution","Point of View","Period/Time","Duration","Location(s)","Focus Character","Characters","Mentions","Pace","Appearance","Prose Quality/Cadence","Emotions","Additional Notes"," Sl","User Defined"
+"yes","Making a Scene","532","1st Draft","","Introduce new users to the basics of novelWriter","Someone installed novelWriter and opened the sample project","Demonstrate that it’s worth exploring the next scene","Has previously used other software and is disoriented by the interface
 
-A new update allows duplicate tags of the same name","Realizes that Markdown syntax is actually very easy to understand and use.","Fears the reader needs to learn a completely new language, “Markdown”","","Axniety about learning a new thing has been addressed.","","","Jane","","0","","5m","Earth","","","John
-Jane","","","","","Space","","slow, informative","","A nominally clean, sparse apartment in a high rise tower.","","","","","friendly although technical","bewilderment, fear.",""
-"Novel","2","yes","Another Scene","79","1st Draft","This is the first bit
+A new update allows duplicate tags of the same name","Realizes that Markdown syntax is actually very easy to understand and use.","Fears the reader needs to learn a completely new language, “Markdown”","Axniety about learning a new thing has been addressed.","Jane","0","5m","Earth","","John
+Jane","Space","slow, informative","A nominally clean, sparse apartment in a high rise tower.","friendly although technical","bewilderment, fear.","Footnote.f4xr5: Using a non-breaking space is the correct way to separate a number from its unit. This ensures that line wrapping does not split the two.","","something."
+"yes","Another Scene","79","1st Draft","This is the first bit
 
-This is the second bit","","","","","","","","","","","","","John","","","","","Earth","","Jane","","","","","","","","","","","","","","","","",""
-"Novel","3","yes","More Scenes","420","1st Draft","","","","","","","","","","","","","","Jane","","","","","Earth","","John","","","","","","","","","","","","","","","","",""
-"Novel","4","yes","An embedded scene","7","1st Draft","","","","","","","","","","","","","","Jane","","","","","Space","","","","","","","","","","","","","","","","","","",""
-"Novel","5","yes","Jane Cannot Find John","21","1st Draft","","","","","","","","","","","","","","Jane","","","","","Space","","John","","","","","","","","","","","","","","","","",""
-"Novel","6","yes","We Found John!","34","2nd Draft","","","","","","","","","","","","","","Jane","","","","","Mars","","John","","","","","","","","","","","","","","","","",""
-"Sequel","1","yes","Scene One","51","3rd Draft","","","","","","","","","","","","","","Jane","","","","","","","John","","","","","","","","","","","","","","","","",""
-"","","","","1,146","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""
+This is the second bit","","","","","","","","John","","","Earth","Jane","","","","","","","","",""
+"yes","More Scenes","420","1st Draft","","","","","","","","","Jane","","","Earth","John","","","","","","","","",""
+"yes","An embedded scene","7","1st Draft","","","","","","","","","","","","","","","","","","","","","",""
+"yes","Jane Cannot Find John","20","1st Draft","","","","","","","","","Jane","","","Space","John","","","","","","","","",""
+"yes","We Found John!","34","2nd Draft","","","","","","","","","John","","","Mars","John","","","","","","","","",""
+"yes","Scene One","51","3rd Draft","","","","","","","","","Jane","","","","John","","","","","","","","",""
+"","","1,143","","","","","","","","","","","","","","","","","","","","","","",""
