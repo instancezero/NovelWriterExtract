@@ -880,6 +880,30 @@ class ExtractGrid
     }
 
     /**
+     * Get a column when the column specification is just a string.
+     * @param NovelData $node
+     * @param int $sequence
+     * @param string $columnName
+     * @return void
+     */
+    private function prepareColumnSimple(NovelData $node, int $sequence, string $columnName): void
+    {
+        switch ($columnName) {
+            case '_blank':
+                break;
+            case '_sequence':
+                $this->contentString = (string)$sequence;
+                $this->contentWidth = $this->estimateWidth($sequence);
+                $this->cellStyle['align'] = Alignment::HORIZONTAL_RIGHT;
+                break;
+            default:
+                $this->getNodeData($node, $columnName);
+                break;
+        }
+        $this->setCellStyle(['key' => $columnName]);
+    }
+
+    /**
      * @param Worksheet $sheet
      * @param NovelData[] $nodes
      * @param array $columns
