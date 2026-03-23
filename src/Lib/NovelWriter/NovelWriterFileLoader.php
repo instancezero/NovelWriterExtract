@@ -58,9 +58,6 @@ class NovelWriterFileLoader
         $inHeader = true;
         foreach ($markdown as $line) {
             $line = rtrim($line);
-            if ($line === '') {
-                //continue;
-            }
             if ($this->isSceneHeader($line)) {
                 // This is the start of a scene, save the preceding scene, if any.
                 if (isset($scene)) {
