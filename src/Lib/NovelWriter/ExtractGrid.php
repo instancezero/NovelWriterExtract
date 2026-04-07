@@ -188,6 +188,7 @@ class ExtractGrid
     protected array $sceneFiles = [];
     protected NovelWriterFileLoader $sceneLoader;
     protected array $seen = [];
+    protected array $seenGlobal = [];
     private int $sheetIndex = 0;
     protected string $sourcePath;
     protected Spreadsheet $spreadsheet;
@@ -322,12 +323,14 @@ class ExtractGrid
         foreach ($lines as $line) {
             // Filter anything that's not a "wide" character.
             $wide = 0.6 * strlen(preg_replace('/[^mwA-HJ-LNP-VXZ0-9]/', '', $line));
-            // Same with "wider"
+
+            // Same with "wider" (and "much wider")
             $wider = 0.8 * strlen(preg_replace('/[^MOQW]/', '', $line))
                 + 1.1 * strlen(preg_replace('/[^*]/', '', $line));
-            // Same with "narrower"
-            $narrower = 0.6 * strlen(preg_replace('/[^iltI|)(}{ !\-\'.;:`]/', '', $line));
-            $width = max($width, 1.05 * strlen($line) + $wide + $wider - $narrower);
+
+            // Same with "narrower" which gets subtracted.
+            $narrower = 0.7 * strlen(preg_replace('/[^iltI|)(}{ !\-\'.;:`]/', '', $line));
+            $width = max($width, strlen($line) + $wide + $wider - $narrower);
         }
         if ($bold) {
             $width *= self::BOLD_FACTOR;
@@ -382,25 +385,37 @@ class ExtractGrid
     /**
      * If the cell has the onFirst attribute, bold the first occurrence.
      * @param string $key
+     * @param bool $useGlobal
      * @return void
      */
-    private function flagFirst(string $key): void
+    private function flagFirst(string $key, bool $useGlobal = false): void
     {
         if ($this->cellStyle['onFirst'] ?? false) {
             $this->seen[$key] ??= [];
+            $this->seenGlobal ??= [];
             $hasNewValue = false;
             $newItems = [];
+            $oldItems = [];
             foreach ($this->contentList as $slot => $newValue) {
-                if (!in_array($newValue, $this->seen[$key])) {
+                $isNew = false;
+                if ($useGlobal) {
+                    if (!in_array($newValue, $this->seenGlobal)) {
+                        $isNew = true;
+                    }
+                } elseif (!in_array($newValue, $this->seen[$key])) {
+                    $isNew = true;
+                }
+                if ($isNew) {
+                    $newItems[] = $newValue;
                     $this->seen[$key][] = $newValue;
-                    $newItems[] = $slot;
+                    $this->seenGlobal[] = $newValue;
                     $hasNewValue = true;
+                } else {
+                    $oldItems[] = "($newValue)";
                 }
             }
-            if (count($newItems) && count($newItems) != count($this->contentList)) {
-                foreach ($newItems as $slot) {
-                    $this->contentList[$slot] = "*{$this->contentList[$slot]}*";
-                }
+            if (count($oldItems) !== count($this->contentList)) {
+                $this->contentList = array_merge($newItems, $oldItems);
                 $this->contentString = implode("\n", $this->contentList);
                 $this->contentWidth = $this->estimateWidth($this->contentString, $hasNewValue);
             }
@@ -522,16 +537,17 @@ class ExtractGrid
     {
         $data = $node[$column] ?? '';
         if (is_array($data)) {
+            $data = array_unique($data);
+            sort($data);
             $this->contentWidth = 0;
             $this->contentList = $data;
             $delimiter = ($column[0] === '@') ? "\n" : "\n\n";
             $this->contentString = implode($delimiter, $data);
-            $this->contentWidth = $this->estimateWidth($this->contentString);
         } else {
             $this->contentList = [$data];
             $this->contentString = preg_replace('! +!', ' ', $data);
-            $this->contentWidth = $this->estimateWidth($this->contentString);
         }
+        $this->contentWidth = $this->estimateWidth($this->contentString);
     }
 
     /**
@@ -1030,8 +1046,8 @@ class ExtractGrid
                     // Renamed header and/or filtered data
                     $this->prepareColumnCustom($columnSpecification, $node);
                 }
-                $this->flagFirst($seenKey);
-                ++$this->contentWidth;
+                $this->flagFirst($seenKey, $columnSpecification === '@mention');
+                //++$this->contentWidth;
                 $sheet->setCellValue([$col1, $row], $this->contentString);
                 $this->formatCell($sheet, $row, $col1, $this->cellStyle);
                 $this->columnWidth[$col1] = max($this->columnWidth[$col1], $this->contentWidth);
