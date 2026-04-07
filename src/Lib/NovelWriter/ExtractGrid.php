@@ -309,15 +309,6 @@ class ExtractGrid
         return $counts;
     }
 
-    private function estimateListWidth(): float
-    {
-        $width = 0.0;
-        foreach ($this->contentList as $item) {
-            $width = max($this->contentWidth, $this->estimateWidth($item));
-        }
-        return $width;
-    }
-
     /**
      * Crudely estimate the column space required for a string.
      * @param string $text
@@ -332,10 +323,11 @@ class ExtractGrid
             // Filter anything that's not a "wide" character.
             $wide = 0.6 * strlen(preg_replace('/[^mwA-HJ-LNP-VXZ0-9]/', '', $line));
             // Same with "wider"
-            $wider = 0.8 * strlen(preg_replace('/[^MOQW]/', '', $line));
+            $wider = 0.8 * strlen(preg_replace('/[^MOQW]/', '', $line))
+                + 1.1 * strlen(preg_replace('/[^*]/', '', $line));
             // Same with "narrower"
-            $narrower = 0.6 * strlen(preg_replace('/[^iltI|)(}{ !\'.;:`]/', '', $line));
-            $width = max($width, 1.05 * strlen($text) + $wide + $wider - $narrower);
+            $narrower = 0.6 * strlen(preg_replace('/[^iltI|)(}{ !\-\'.;:`]/', '', $line));
+            $width = max($width, 1.05 * strlen($line) + $wide + $wider - $narrower);
         }
         if ($bold) {
             $width *= self::BOLD_FACTOR;
@@ -409,12 +401,11 @@ class ExtractGrid
                 foreach ($newItems as $slot) {
                     $this->contentList[$slot] = "*{$this->contentList[$slot]}*";
                 }
-                $this->estimateListWidth();
                 $this->contentString = implode("\n", $this->contentList);
+                $this->contentWidth = $this->estimateWidth($this->contentString, $hasNewValue);
             }
             if ($hasNewValue) {
                 $this->cellStyle['bold'] = true;
-                $this->contentWidth = $this->contentWidth * self::BOLD_FACTOR;
             }
         }
     }
@@ -533,9 +524,9 @@ class ExtractGrid
         if (is_array($data)) {
             $this->contentWidth = 0;
             $this->contentList = $data;
-            $this->contentWidth = $this->estimateListWidth();
             $delimiter = ($column[0] === '@') ? "\n" : "\n\n";
             $this->contentString = implode($delimiter, $data);
+            $this->contentWidth = $this->estimateWidth($this->contentString);
         } else {
             $this->contentList = [$data];
             $this->contentString = preg_replace('! +!', ' ', $data);
