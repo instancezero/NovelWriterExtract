@@ -13,6 +13,7 @@
   "require": {
     "ext-simplexml": "*",
     "abivia/criteria": "^1.2",
+    "nesbot/carbon": "^3.0",
     "phpoffice/phpspreadsheet": "^2.0",
     "ext-readline": "*"
   },

@@ -66,6 +66,7 @@ class ExtractGrid
      * @var float
      */
     protected float $contentWidth;
+    protected bool $cronModeFixed = true;
     protected mixed $formats;
     /**
      * @var array|string[] Override column headers for fields.
@@ -84,6 +85,7 @@ class ExtractGrid
         '@tag' => 'Tag',
         '@timeline' => 'Timelines',
         '_active' => 'Active',
+        '_cron' => 'Cron Time',
         '_folder' => 'Folder',
         '_novel' => 'Novel',
         '_sequence' => '#',
@@ -159,6 +161,7 @@ class ExtractGrid
         'time',
         'tod',
         'duration',
+        '_cron',
         '@location',
         '@timeline',
         '@focus',
@@ -285,6 +288,19 @@ class ExtractGrid
         $this->contentWidth = 0.0;
         $this->cellStyle = [];
         $this->onFirst = false;
+    }
+
+    private function computeCron()
+    {
+        $timeFormat = $this->formats['time'] ?? [];
+        if (!is_array($timeFormat)) {
+            return;
+        }
+        NovelData::configureCron($timeFormat);
+        /** @var NovelData $scene */
+        foreach ($this->sceneData as $scene) {
+            $scene->computeCron();
+        }
     }
 
     /**
@@ -1166,6 +1182,7 @@ class ExtractGrid
                 throw new Exception("Error reading format file $formatPath\n");
             }
         }
+        $this->computeCron();
         $this->wordCountStyle = self::$styles['words'];
         $hadContent = $this->prepareScenes();
         if ($this->formats['wordCounts'] ?? true) {

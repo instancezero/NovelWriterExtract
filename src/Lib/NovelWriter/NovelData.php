@@ -3,12 +3,21 @@
 namespace Lib\NovelWriter;
 
 use ArrayAccess;
+use Carbon\Carbon;
+use Carbon\Exceptions\InvalidFormatException;
 
 class NovelData implements ArrayAccess
 {
     const string STRUCTURE_KEYWORD = 'story';
 
     public array $comments = [];
+    protected static string $cronMode;
+    protected static array $cronUnits;
+    protected static array $cronVars = [];
+    /**
+     * @var mixed|string
+     */
+    protected static mixed $cronZone;
     /**
      * @var array|mixed
      */
@@ -39,6 +48,92 @@ class NovelData implements ArrayAccess
         }
         $this->text[] = $line;
     }
+
+    public function computeCron()
+    {
+        $time = trim($this->terms['time'][0] ?? '');
+        switch (self::$cronMode) {
+            case 'fixed':
+                try {
+                    $this->node['_cron'] = Carbon::parse($time, self::$cronZone)->toIso8601String();
+                } catch (InvalidFormatException) {
+                    $this->node['_cron'] = '';
+                }
+                break;
+            case 'relative':
+                if ($time === '') {
+                    $this->node['_cron'] = '';
+                } elseif (str_contains($time, '=')) {
+                    // We have a definition.
+                    $parts = explode('=', $time);
+                    if (!isset(self::$cronVars[$parts[0]])) {
+                        self::$cronVars[$parts[0]] = self::cronAbsolute($parts[1]);
+                    }
+                    $this->node['_cron'] = self::$cronVars[$parts[0]];
+                } else {
+                    $this->node['_cron'] = self::cronAbsolute($time);
+                }
+                break;
+            default:
+                $this->node['_cron'] = '';
+                break;
+        }
+    }
+
+    public static function configureCron(array $cronSettings): void
+    {
+        self::$cronMode = strtolower($cronSettings['mode'] ?? 'off');
+        switch (self::$cronMode) {
+            case 'fixed':
+                self::$cronZone = $cronSettings['zone'] ?? 'UTC';
+                break;
+            case 'relative':
+                $units = $cronSettings['units'] ?? [];
+                if (!is_array($units)) {
+                    self::$cronUnits = ['' => 1];
+                } else {
+                    self::$cronUnits =  ['' => 1];
+                    foreach ($units as $unit => $interval) {
+                        if (is_numeric($interval)) {
+                            self::$cronUnits[$unit] = $interval;
+                        } else {
+                            self::$cronUnits[$unit] = self::cronAbsolute($interval);
+                        }
+                    }
+                }
+                break;
+            default:
+                self::$cronMode = 'off';
+        }
+    }
+
+    /**
+     * Convert a relative time expression to an absolute time.
+     * @param string $relative
+     * @return float
+     */
+    private static function cronAbsolute(string $relative): float
+    {
+        $relative = preg_replace('/\s/', '', $relative);
+        $parts = preg_split('/([+\-])/', $relative, flags: PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE);
+        $result = 0.0;
+        $sign = 1;
+        foreach ($parts as $part) {
+            if ($part === '+') {
+                $sign = 1;
+            } elseif ($part === '-') {
+                $sign = -1;
+            } elseif (isset(self::$cronVars[$part])) {
+                $result += $sign * self::$cronVars[$part];
+            } else {
+                $subParts = preg_split('/([0-9.]+)/', $part, flags: PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE);
+                $increment = floatval($subParts[0]);
+                $result += $sign * $increment * (self::$cronUnits[$subParts[1] ?? ''] ?? 1);
+            }
+        }
+        return $result;
+    }
+
 
     public function offsetExists(mixed $offset): bool
     {
@@ -79,7 +174,8 @@ class NovelData implements ArrayAccess
     }
 
     /**
-     * Examine the content of a comment and extract anything formatted as a story
+     * Examine the content of a comment and extract anything formatted
+     * as a story into an array of terms.
      * @param string $line
      * @param array $inUse
      * @return void

@@ -1,4 +1,13 @@
 {
+  "time": {
+    "mode": "relative",
+    "units": {
+      "": 1,
+      "d": 24,
+      "h": 1,
+      "mo": 30
+    }
+  },
   "scenes": [
     "_sequence",
     "name",
