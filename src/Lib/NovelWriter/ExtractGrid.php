@@ -1196,23 +1196,7 @@ class ExtractGrid
         }
         $timelines = $this->formats['timelines'] ?? false;
         if ($timelines !== false) {
-            $timeLineFloor = is_numeric($timelines) ? $timelines : 1;
-            if (!is_array($timelines)) {
-                $timelines = [];
-                foreach ($this->characterData as $characterNode) {
-                    if ($characterNode['@tag']) {
-                        $timelines[] = $characterNode['@tag'][0];
-                    }
-                }
-                sort($timelines);
-            }
-            foreach ($timelines as $character) {
-                $nodeList = $this->getCharacterScenes($character);
-                if (count($nodeList) >= $timeLineFloor) {
-                    $this->prepareTimeline($hadContent, $nodeList, $character);
-                    $hadContent = true;
-                }
-            }
+            $hadContent = $this->prepareTimelines($hadContent, $timelines);
         }
         if ($this->formats['analysis'] ?? true) {
             $hadContent = $this->prepareAnalysis($hadContent);
@@ -1226,7 +1210,12 @@ class ExtractGrid
      * @param string $character
      * @return void
      */
-    private function prepareTimeline(bool $newSheet, array $nodeList, string $character): void
+    private function prepareTimeline(
+        bool $newSheet,
+        array $nodeList,
+        string $character,
+        array $optionalColumns
+    ): void
     {
         if ($newSheet) {
             $this->spreadsheet->createSheet();
@@ -1236,7 +1225,7 @@ class ExtractGrid
         if ($this->verbose) {
             echo "Preparing timeline for $character\n";
         }
-        $columns = ['_sequence', 'name', 'time', 'synopsis'];
+        $columns = array_merge(['_sequence', 'name'], $optionalColumns, ['synopsis']);
         $columns = $this->getColumns($columns, $this->characterAttributes);
         // Add and style the headers
         $sheet = $this->spreadsheet->getSheet($this->sheetIndex);
@@ -1279,6 +1268,74 @@ class ExtractGrid
 
         $this->setColumnWidths($sheet, $headers);
         $sheet->setSelectedCell('A2');
+    }
+
+    /**
+     * Determine which timelines to prepare and generate them.
+     * @param bool $hadContent
+     * @param mixed $timelines
+     * @return bool
+     *
+     *  Timelines:
+     *  false: disabled.
+     *  int: number of scenes the character has to be in to get a report
+     *  array:
+     *  [chars] => list of characters to generate timeline for
+     *  [minimum] Minimum number of scenes required to generate a timeline
+     *  [show] array for optional columns:
+     *      [time] => report the time from the scene
+     *      [_cron] report the "cron time" for the scene
+     */
+    private function prepareTimelines(bool $hadContent, mixed $timelines): bool
+    {
+        $timelineChars = null;
+        $optionalColumns = [];
+        if (is_array($timelines)) {
+            $timeLineFloor = $timelines['minimum'] ?? 1;
+            if (isset($timelines['chars'])) {
+                $timelineChars = $timelines['chars'];
+            }
+            if (isset($timelines['show'])) {
+                if (isset($timelines['show']['time']) && $timelines['show']['time']) {
+                    $optionalColumns[] = 'time';
+                }
+                if (isset($timelines['show']['_cron']) && $timelines['show']['_cron']) {
+                    $optionalColumns[] = '_cron';
+                }
+            } else {
+                $optionalColumns = ['time', '_cron'];
+            }
+
+        } else {
+            // We just expect a scene threshold.
+            $timeLineFloor = is_numeric($timelines) ? $timelines : 1;
+        }
+        // If no characters were specified, get all characters
+        if ($timelineChars === null) {
+            $timelineChars = [];
+            foreach ($this->characterData as $characterNode) {
+                if ($characterNode['@tag']) {
+                    $timelineChars[] = $characterNode['@tag'][0];
+                }
+            }
+        }
+        sort($timelineChars);
+        $newHadContent = false;
+        $skipped = [];
+        foreach ($timelineChars as $character) {
+            $nodeList = $this->getCharacterScenes($character);
+            if (count($nodeList) >= $timeLineFloor) {
+                $this->prepareTimeline($hadContent, $nodeList, $character, $optionalColumns);
+                $hadContent = true;
+                $newHadContent = true;
+            } else {
+                $skipped[] = $character;
+            }
+        }
+        if (count($skipped) > 0) {
+            echo "Skip timeline for < $timeLineFloor scenes: " . implode(', ', $skipped) . "\n";
+        }
+        return $newHadContent;
     }
 
     /**
