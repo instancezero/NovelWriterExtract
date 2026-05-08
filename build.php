@@ -1,7 +1,8 @@
 <?php
 $composer = json_decode(file_get_contents(__DIR__ . '\composer.json'), true);
 $version = $composer['version'];
-$good = strtolower(readline("Build version $version? [Y/n]: "));
+echo "Build version $version? [Y/n]: ";
+$good = strtolower(readline());
 if ($good !== '' && $good !== 'y' && $good !== 'yes') {
     echo "\n";
     exit;

@@ -11,13 +11,21 @@ class NovelData implements ArrayAccess
     const string STRUCTURE_KEYWORD = 'story';
 
     public array $comments = [];
-    protected static string $cronMode;
-    protected static array $cronUnits;
-    protected static array $cronVars = [];
+    protected static string $chronMode;
+    protected static array $chronUnits =[
+        '' => 1,
+        'm' => 1,
+        'h' => '60m',
+        'd' => '24h',
+        'w' => '7d',
+        'mo' => '30d',
+        'y' => '12mo',
+    ];
+    protected static array $chronVars = [];
     /**
      * @var mixed|string
      */
-    protected static mixed $cronZone;
+    protected static mixed $chronZone;
     /**
      * @var array|mixed
      */
@@ -49,13 +57,13 @@ class NovelData implements ArrayAccess
         $this->text[] = $line;
     }
 
-    public function computeCron()
+    public function computeChron(): void
     {
         $time = trim($this->terms['time'][0] ?? '');
-        switch (self::$cronMode) {
+        switch (self::$chronMode) {
             case 'fixed':
                 try {
-                    $this->node['_cron'] = Carbon::parse($time, self::$cronZone)->toIso8601String();
+                    $this->node['_cron'] = Carbon::parse($time, self::$chronZone)->toIso8601String();
                 } catch (InvalidFormatException) {
                     $this->node['_cron'] = '';
                 }
@@ -66,10 +74,10 @@ class NovelData implements ArrayAccess
                 } elseif (str_contains($time, '=')) {
                     // We have a definition.
                     $parts = explode('=', $time);
-                    if (!isset(self::$cronVars[$parts[0]])) {
-                        self::$cronVars[$parts[0]] = self::cronAbsolute($parts[1]);
+                    if (!isset(self::$chronVars[$parts[0]])) {
+                        self::$chronVars[$parts[0]] = self::cronAbsolute($parts[1]);
                     }
-                    $this->node['_cron'] = self::$cronVars[$parts[0]];
+                    $this->node['_cron'] = self::$chronVars[$parts[0]];
                 } else {
                     $this->node['_cron'] = self::cronAbsolute($time);
                 }
@@ -82,28 +90,26 @@ class NovelData implements ArrayAccess
 
     public static function configureCron(array $cronSettings): void
     {
-        self::$cronMode = strtolower($cronSettings['mode'] ?? 'off');
-        switch (self::$cronMode) {
+        self::$chronMode = strtolower($cronSettings['mode'] ?? 'off');
+        switch (self::$chronMode) {
             case 'fixed':
-                self::$cronZone = $cronSettings['zone'] ?? 'UTC';
+                self::$chronZone = $cronSettings['zone'] ?? 'UTC';
                 break;
             case 'relative':
-                $units = $cronSettings['units'] ?? [];
-                if (!is_array($units)) {
-                    self::$cronUnits = ['' => 1];
-                } else {
-                    self::$cronUnits =  ['' => 1];
+                if (isset($cronSettings['units']) && is_array($cronSettings['units'])) {
+                    $units = $cronSettings['units'];
+                    self::$chronUnits = ['' => 1];
                     foreach ($units as $unit => $interval) {
                         if (is_numeric($interval)) {
-                            self::$cronUnits[$unit] = $interval;
+                            self::$chronUnits[$unit] = $interval;
                         } else {
-                            self::$cronUnits[$unit] = self::cronAbsolute($interval);
+                            self::$chronUnits[$unit] = self::cronAbsolute($interval);
                         }
                     }
                 }
                 break;
             default:
-                self::$cronMode = 'off';
+                self::$chronMode = 'off';
         }
     }
 
@@ -123,12 +129,12 @@ class NovelData implements ArrayAccess
                 $sign = 1;
             } elseif ($part === '-') {
                 $sign = -1;
-            } elseif (isset(self::$cronVars[$part])) {
-                $result += $sign * self::$cronVars[$part];
+            } elseif (isset(self::$chronVars[$part])) {
+                $result += $sign * self::$chronVars[$part];
             } else {
                 $subParts = preg_split('/([0-9.]+)/', $part, flags: PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE);
                 $increment = floatval($subParts[0]);
-                $result += $sign * $increment * (self::$cronUnits[$subParts[1] ?? ''] ?? 1);
+                $result += $sign * $increment * (self::$chronUnits[$subParts[1] ?? ''] ?? 1);
             }
         }
         return $result;
@@ -243,7 +249,7 @@ class NovelData implements ArrayAccess
         $inUse[$command] = true;
     }
 
-    private function profileSentences()
+    private function profileSentences(): void
     {
         $paragraphs = [''];
         $pNum = 0;
@@ -257,12 +263,14 @@ class NovelData implements ArrayAccess
             $paragraphs[$pNum] .= " $line";
         }
         $pElements = [];
+        $slg = '';
+        $slgRef = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
         $totalSentences = 0;
         foreach ($paragraphs as $paragraph) {
             if ($paragraph === '') {
                 continue;
             }
-            $paragraph = preg_replace('!(dr|mr|mrs)\.!i', '$1', $paragraph);
+            $paragraph = preg_replace('!(dr|mr|mrs|prof)\.!i', '$1', $paragraph);
             $sentences = explode('.', $paragraph);
             $totalSentences += count($sentences);
             $elements = [];
@@ -270,6 +278,7 @@ class NovelData implements ArrayAccess
             $run = 0;
             foreach ($sentences as $sentence) {
                 $words = str_word_count($sentence);
+                $slg .= $slgRef[min(floor($words / 3) + 1, 7)];
                 $size = match (true) {
                     $words < 5 => 's',
                     $words >= 20 => 'l',
@@ -288,6 +297,7 @@ class NovelData implements ArrayAccess
                     ++$run;
                 }
             }
+            $slg .= ' ';
             $elements[] = (($run > 1) ? $run : '') . $last;
             $pElements[]= 'P' . count($sentences) . ':' . implode('.', $elements);
         }
@@ -296,13 +306,14 @@ class NovelData implements ArrayAccess
             . round($totalSentences/count($pElements), 1) . ': '
             : '';
         $this->node['_sla'] = $avg . implode(', ', $pElements);
+        $this->node['_slg'] = $slg;
     }
 
     /**
      * Compute the frequency of words and two or three character phrases in the scene.
      * @return void
      */
-    public function profileText()
+    public function profileText(): void
     {
         $this->distribution = [];
         $this->phrases = [];
@@ -310,7 +321,7 @@ class NovelData implements ArrayAccess
         $phraseThree = [];
         $text = implode(' ', $this->text);
         $text = str_replace(["'", "’"], '', $text);
-        $words = str_word_count($text, 1);
+        $words = str_word_count($text, 1, '-');
         $this->words = count($words);
         foreach ($words as $offset => $word) {
             $word = strtolower($word);
@@ -343,7 +354,7 @@ class NovelData implements ArrayAccess
         $this->profileSentences();
     }
 
-    private function computeClumpiness(array &$distribution)
+    private function computeClumpiness(array &$distribution): void
     {
         foreach ($distribution as &$info) {
             $histogram = [];
@@ -361,7 +372,7 @@ class NovelData implements ArrayAccess
         }
     }
 
-    public function unset(string $key, mixed $index)
+    public function unset(string $key, mixed $index): void
     {
         unset($this->terms[$key][$index]);
     }

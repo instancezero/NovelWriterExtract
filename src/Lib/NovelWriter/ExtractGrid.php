@@ -39,16 +39,7 @@ class ExtractGrid
         'name',
         '@tag',
         '_folder',
-        'given',
-        'surname',
-        'pronouns',
-        'age',
-        'hair',
-        'eyes',
-        'skin',
-        'build',
-        'fate',
-        'synopsis',
+        //'synopsis',
     ];
     protected array $characterAttributes = [];
     protected array $characterData = [];
@@ -66,7 +57,6 @@ class ExtractGrid
      * @var float
      */
     protected float $contentWidth;
-    protected bool $cronModeFixed = true;
     protected mixed $formats;
     /**
      * @var array|string[] Override column headers for fields.
@@ -85,11 +75,12 @@ class ExtractGrid
         '@tag' => 'Tag',
         '@timeline' => 'Timelines',
         '_active' => 'Active',
-        '_cron' => 'Cron Time',
+        '_chron' => 'Chron. Time',
         '_folder' => 'Folder',
         '_novel' => 'Novel',
         '_sequence' => '#',
-        '_sla' => 'Sentence Lengths',
+        '_slg' => 'Sentence Length Graph',
+        '_sla' => 'Sentence Length Analysis',
         '_status' => 'Status',
         'about' => 'This NovelData is About',
         'aural' => 'Environmental Sounds',
@@ -108,7 +99,6 @@ class ExtractGrid
         'turning' => 'Turning Point',
         'value' => 'Value Shift',
     ];
-    protected array $inUse = [];
     /**
      * @var array|string[] Attributes associated with character nodes
      */
@@ -117,7 +107,7 @@ class ExtractGrid
         'name',
         '@tag',
         '_folder',
-        'synopsis',
+        //'synopsis',
     ];
     protected array $locationAttributes = [];
     protected array $locationData;
@@ -144,6 +134,7 @@ class ExtractGrid
         '_status',
         'synopsis',
         '_sla',
+        '_slg',
         'value',
         'polarity',
         'purpose',
@@ -161,7 +152,7 @@ class ExtractGrid
         'time',
         'tod',
         'duration',
-        '_cron',
+        '_chron',
         '@location',
         '@timeline',
         '@focus',
@@ -224,23 +215,27 @@ class ExtractGrid
 
     /**
      * Get a list of attributes in use, ordered by the elements in attributeRef.
+     * @param array $inUse
      * @param array $attributeRef
      * @return array
      */
-    private function buildAttributes(array $attributeRef): array
+    private function buildAttributes(array $inUse, array $attributeRef): array
     {
         $attributes = [];
+        // Add the default columns if they're in use
         foreach ($attributeRef as $column) {
-            if (isset($this->inUse[$column])) {
+            if (isset($inUse[$column])) {
                 $attributes[$column] = $column;
             }
         }
-        foreach (array_keys($this->inUse) as $column) {
+        $extra = [];
+        foreach (array_keys($inUse) as $column) {
             if (!isset($attributes[$column])) {
-                $attributes[$column] = $column;
+                $extra[$column] = $column;
             }
         }
-        return array_values($attributes);
+        asort($extra);
+        return array_merge(array_values($attributes), array_values($extra));
     }
 
     /**
@@ -290,7 +285,11 @@ class ExtractGrid
         $this->onFirst = false;
     }
 
-    private function computeCron()
+    /**
+     * Compute the relative cron value for each scene.
+     * @return void
+     */
+    private function computeCron(): void
     {
         $timeFormat = $this->formats['time'] ?? [];
         if (!is_array($timeFormat)) {
@@ -299,7 +298,7 @@ class ExtractGrid
         NovelData::configureCron($timeFormat);
         /** @var NovelData $scene */
         foreach ($this->sceneData as $scene) {
-            $scene->computeCron();
+            $scene->computeChron();
         }
     }
 
@@ -412,7 +411,7 @@ class ExtractGrid
             $hasNewValue = false;
             $newItems = [];
             $oldItems = [];
-            foreach ($this->contentList as $slot => $newValue) {
+            foreach ($this->contentList as $newValue) {
                 $isNew = false;
                 if ($useGlobal) {
                     if (!in_array($newValue, $this->seenGlobal)) {
@@ -497,7 +496,7 @@ class ExtractGrid
     }
 
     /**
-     * Get a user provided column list, the default list, or false for no columns.
+     * Get a user-provided column list, the default list, or false for no columns.
      * @param mixed $option
      * @param array $default
      * @return array|false
@@ -506,9 +505,18 @@ class ExtractGrid
     {
         // If the column specification is 'true', then include all columns.
         if ($option === true) {
-            $option = $default;
+            return $default;
         }
-        return $option;
+        // If the user has specified * as a column, inject the default columns.
+        $result = [];
+        foreach ($option as $column) {
+            if ($column === '*') {
+                $result = array_merge($result, $default);
+            } else {
+                $result[] = $column;
+            }
+        }
+        return $result;
     }
 
     /**
@@ -583,6 +591,35 @@ class ExtractGrid
         return $style;
     }
 
+    private function getUserColumns(array $columns, array $formatColumns, array $refColumns): array
+    {
+        $columnsIndexed = array_combine($columns, $columns);
+        // Normalize the case for comparison
+        $formatColumns = array_map('strtolower', $formatColumns);
+        $columns = [];
+
+        // Copy in all the reference columns that are in use.
+        foreach ($refColumns as $colName) {
+            if (isset($columnsIndexed[$colName])) {
+                $columns[$colName] = $colName;
+            }
+        }
+
+        // Copy in the user-specified columns, if they're in use
+        foreach ($formatColumns as $colName) {
+            if (isset($columnsIndexed[$colName])) {
+                $columns[$colName] = $colName;
+            }
+        }
+
+        // If the synopsis is in use, add it in (if already there, this results in no change)
+        if (isset($columnsIndexed['synopsis'])) {
+            $columns['synopsis'] = 'synopsis';
+        }
+
+        return $columns;
+    }
+
     /**
      * Use the output path to determine the type of writer to use.
      * @param string $path
@@ -603,46 +640,50 @@ class ExtractGrid
 
     private function loadCharacters(): void
     {
-        $this->inUse = [
+        $inUse = [
             'name' => true,
-            '_folder' => true,
         ];
         $this->characterData = [];
         foreach ($this->characterFiles as $file) {
-            $this->characterData[] = $this->loadFile($file);
+            $character = $this->loadFile($file, $inUse);
+            if ($character['_folder'] !== '') {
+                $inUse['_folder'] = true;
+            }
+            $this->characterData[] = $character;
         }
-        $this->characterAttributes = $this->buildAttributes(self::$characterAttributeRef);
+        $this->characterAttributes = $this->buildAttributes($inUse, self::$characterAttributeRef);
     }
 
     /**
      * Get the contents of a novelWriter data file as a NodeData object.
      * @param array $file
+     * @param array $inUse
      * @return NovelData
      */
-    private function loadFile(array $file): NovelData
+    private function loadFile(array $file, array &$inUse): NovelData
     {
         $markdown = explode(
             "\n",
             @file_get_contents("$this->sourcePath/content/{$file['handle']}.nwd")
         );
         $loader = new NovelWriterFileLoader();
-        return $loader->loadFile($file, $markdown, $this->inUse);
+        return $loader->loadFile($file, $markdown, $inUse);
     }
 
     /**
-     * Load a novelWriter file in the locations tree.
+     * Load a novelWriter file in the locations section.
      * @return void
      */
     private function loadLocations(): void
     {
-        $this->inUse = [
+        $inUse = [
             'name' => true,
         ];
         $this->locationData = [];
         foreach ($this->locationFiles as $location) {
-            $this->locationData[] = $this->loadFile($location);
+            $this->locationData[] = $this->loadFile($location, $inUse);
         }
-        $this->locationAttributes = $this->buildAttributes(self::$locationAttributeRef);
+        $this->locationAttributes = $this->buildAttributes($inUse, self::$locationAttributeRef);
     }
 
     /**
@@ -723,7 +764,7 @@ class ExtractGrid
      */
     private function loadScenes(): void
     {
-        $this->inUse = [
+        $inUse = [
             '_status' => true,
             '_active' => true,
             'name' => true,
@@ -741,9 +782,9 @@ class ExtractGrid
         }
         $this->profileScenes();
         foreach (array_keys($this->sceneLoader->inUse) as $key) {
-            $this->inUse[$key] = true;
+            $inUse[$key] = true;
         }
-        $this->sceneAttributes = $this->buildAttributes(self::$sceneAttributeRef);
+        $this->sceneAttributes = $this->buildAttributes($inUse, self::$sceneAttributeRef);
     }
 
     /**
@@ -874,8 +915,9 @@ class ExtractGrid
      */
     private function prepareCharacters(bool $newSheet): bool
     {
-        $columns = $this->formats['characters'] ?? true;
-        if ($columns === false || count($this->characterData) === 0) {
+        $formatColumns = $this->formats['characters'] ?? true;
+        if ($formatColumns === false || count($this->characterData) === 0) {
+            // Nothing to do, return the current new sheet state.
             return $newSheet;
         }
         if ($this->verbose) {
@@ -886,7 +928,16 @@ class ExtractGrid
             ++$this->sheetIndex;
             $this->columnWidth = [];
         }
-        $columns = $this->getColumns($columns, $this->characterAttributes);
+
+        // By default, get all columns
+        $columns = $this->getColumns(['_sequence','*'], $this->characterAttributes);
+        $columns = array_unique($columns);
+
+        // If there is a user-specified format
+        if (is_array($formatColumns)) {
+            $columns = $this->getUserColumns($columns, $formatColumns, self::$characterAttributeRef);
+        }
+
         // Add and style the headers
         $sheet = $this->spreadsheet->getSheet($this->sheetIndex);
         $sheet->setTitle('Characters');
@@ -1083,8 +1134,8 @@ class ExtractGrid
      */
     private function prepareLocations(bool $newSheet): bool
     {
-        $columns = $this->formats['locations'] ?? true;
-        if ($columns === false || count($this->locationData) === 0) {
+        $formatColumns = $this->formats['locations'] ?? true;
+        if ($formatColumns === false || count($this->locationData) === 0) {
             return $newSheet;
         }
         if ($this->verbose) {
@@ -1095,7 +1146,16 @@ class ExtractGrid
             ++$this->sheetIndex;
             $this->columnWidth = [];
         }
-        $columns = $this->getColumns($columns, $this->locationAttributes);
+
+        // By default, get all columns
+        $columns = $this->getColumns(['_sequence', '*'], $this->locationAttributes);
+        $columns = array_unique($columns);
+
+        // If there is a user-specified format
+        if (is_array($formatColumns)) {
+            $columns = $this->getUserColumns($columns, $formatColumns, self::$locationAttributeRef);
+        }
+
         // Add and style the headers
         $sheet = $this->spreadsheet->getSheet($this->sheetIndex);
         $sheet->setTitle('Locations');
@@ -1198,7 +1258,7 @@ class ExtractGrid
         if ($timelines !== false) {
             $hadContent = $this->prepareTimelines($hadContent, $timelines);
         }
-        if ($this->formats['analysis'] ?? true) {
+        if ($this->formats['analysis'] ?? false) {
             $hadContent = $this->prepareAnalysis($hadContent);
         }
     }
@@ -1208,6 +1268,7 @@ class ExtractGrid
      * @param bool $newSheet
      * @param array $nodeList
      * @param string $character
+     * @param array $optionalColumns
      * @return void
      */
     private function prepareTimeline(
@@ -1284,7 +1345,7 @@ class ExtractGrid
      *  [minimum] Minimum number of scenes required to generate a timeline
      *  [show] array for optional columns:
      *      [time] => report the time from the scene
-     *      [_cron] report the "cron time" for the scene
+     *      [_chron] report the "cron time" for the scene
      */
     private function prepareTimelines(bool $hadContent, mixed $timelines): bool
     {
@@ -1299,11 +1360,11 @@ class ExtractGrid
                 if (isset($timelines['show']['time']) && $timelines['show']['time']) {
                     $optionalColumns[] = 'time';
                 }
-                if (isset($timelines['show']['_cron']) && $timelines['show']['_cron']) {
-                    $optionalColumns[] = '_cron';
+                if (isset($timelines['show']['_chron']) && $timelines['show']['_chron']) {
+                    $optionalColumns[] = '_chron';
                 }
             } else {
-                $optionalColumns = ['time', '_cron'];
+                $optionalColumns = ['time', '_chron'];
             }
 
         } else {
