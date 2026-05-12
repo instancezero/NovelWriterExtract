@@ -488,6 +488,11 @@ This does not apply to the CSV output file format
 
 ## Release Notes
 
+### 1.4.1 2026-05-11
+
+Fixed:
+- A renaming issue caused the _chron column to come up blank.
+
 ### 1.4.0 2026-05-08
 
 Fixed:

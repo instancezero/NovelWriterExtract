@@ -3,7 +3,7 @@
   "description": "A tool to extract novelWriter metadata.",
   "minimum-stability": "stable",
   "license": "GPL-3.0-or-later",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "authors": [
     {
       "name": "Alan Langford",

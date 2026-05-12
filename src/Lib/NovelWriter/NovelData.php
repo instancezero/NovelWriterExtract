@@ -63,27 +63,27 @@ class NovelData implements ArrayAccess
         switch (self::$chronMode) {
             case 'fixed':
                 try {
-                    $this->node['_cron'] = Carbon::parse($time, self::$chronZone)->toIso8601String();
+                    $this->node['_chron'] = Carbon::parse($time, self::$chronZone)->toIso8601String();
                 } catch (InvalidFormatException) {
-                    $this->node['_cron'] = '';
+                    $this->node['_chron'] = '';
                 }
                 break;
             case 'relative':
                 if ($time === '') {
-                    $this->node['_cron'] = '';
+                    $this->node['_chron'] = '';
                 } elseif (str_contains($time, '=')) {
                     // We have a definition.
                     $parts = explode('=', $time);
                     if (!isset(self::$chronVars[$parts[0]])) {
                         self::$chronVars[$parts[0]] = self::cronAbsolute($parts[1]);
                     }
-                    $this->node['_cron'] = self::$chronVars[$parts[0]];
+                    $this->node['_chron'] = self::$chronVars[$parts[0]];
                 } else {
-                    $this->node['_cron'] = self::cronAbsolute($time);
+                    $this->node['_chron'] = self::cronAbsolute($time);
                 }
                 break;
             default:
-                $this->node['_cron'] = '';
+                $this->node['_chron'] = '';
                 break;
         }
     }
@@ -98,7 +98,7 @@ class NovelData implements ArrayAccess
             case 'relative':
                 if (isset($cronSettings['units']) && is_array($cronSettings['units'])) {
                     $units = $cronSettings['units'];
-                    self::$chronUnits = ['' => 1];
+                    self::$chronUnits[''] = 1;
                     foreach ($units as $unit => $interval) {
                         if (is_numeric($interval)) {
                             self::$chronUnits[$unit] = $interval;
