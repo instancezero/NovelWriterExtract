@@ -116,6 +116,7 @@ class ExtractGrid
      * @var false|mixed
      */
     protected bool $onFirst;
+    protected string $outputPath;
     protected float $phraseColWidth;
     /**
      * @var array|array[]
@@ -371,6 +372,7 @@ class ExtractGrid
             return;
         }
         try {
+            $this->outputPath = $path;
             if ($this->verbose) {
                 echo "Loading Characters\n";
             }
@@ -555,11 +557,16 @@ class ExtractGrid
      * and contentWidth properties.
      * @param NovelData $node
      * @param string $column
+     * @param string|null $fallback
      * @return void
      */
-    private function getNodeData(NovelData $node, string $column): void
+    private function getNodeData(
+        NovelData $node,
+        string $column,
+        ?string $fallback = null
+    ): void
     {
-        $data = $node[$column] ?? '';
+        $data = $node[$column] ?? ($node[$fallback] ?? '');
         if (is_array($data)) {
             $data = array_unique($data);
             sort($data);
@@ -1002,11 +1009,7 @@ class ExtractGrid
                 $this->cellStyle['align'] = Alignment::HORIZONTAL_RIGHT;
                 break;
             default:
-                if (isset($node[$columnName])) {
-                    $this->getNodeData($node, $columnName);
-                } else {
-                    $this->getNodeData($node, $fallbackName);
-                }
+                $this->getNodeData($node, $columnName, $fallbackName);
                 break;
         }
         $this->setCellStyle(['key' => $columnName]);
@@ -1331,6 +1334,37 @@ class ExtractGrid
         $sheet->setSelectedCell('A2');
     }
 
+    private function prepareTimelineMarkdown(
+        mixed $markdownFile,
+        array $nodeList,
+        string $character,
+        array $optionalColumns
+    ): void
+    {
+        $columns = array_merge(['name'], $optionalColumns, ['synopsis']);
+        $columns = $this->getColumns($columns, $this->characterAttributes);
+        $storyLineKey = strtolower("of_$character");
+        $lines = ["# Timeline for $character"];
+        $lastNovel = '';
+        foreach ($nodeList as $node) {
+            if (($node['_novel'] ?? '') !== $lastNovel) {
+                $lastNovel = $node['_novel'];
+                $lines[] = "## In $lastNovel";
+            }
+            $lines[] = "### Scene: {$node['name']} at " . ($node['time'][0] ?? 'an unspecified time');
+            foreach ($columns as $columnSpecification) {
+                if ($columnSpecification === 'synopsis') {
+                    $this->getNodeData($node, $storyLineKey, 'synopsis');
+                    $lines[] = $this->contentString;
+                } elseif (!in_array($columnSpecification, ['_chron', 'name', 'time'])) {
+                    $this->getNodeData($node, $columnSpecification);
+                    $lines[] = "$columnSpecification: $this->contentString";
+                }
+            }
+        }
+        fputs($markdownFile, implode("\n", $lines) . "\n");
+    }
+
     /**
      * Determine which timelines to prepare and generate them.
      * @param bool $hadContent
@@ -1371,6 +1405,8 @@ class ExtractGrid
             // We just expect a scene threshold.
             $timeLineFloor = is_numeric($timelines) ? $timelines : 1;
         }
+        $writeMarkdown = $timelines['markdown'] ?? false;
+
         // If no characters were specified, get all characters
         if ($timelineChars === null) {
             $timelineChars = [];
@@ -1381,17 +1417,28 @@ class ExtractGrid
             }
         }
         sort($timelineChars);
+        if ($writeMarkdown) {
+            $path = pathinfo($this->parsePath($this->outputPath), PATHINFO_FILENAME) . '.md';
+            $markdownFile = fopen($path, 'w');
+        }
         $newHadContent = false;
         $skipped = [];
         foreach ($timelineChars as $character) {
             $nodeList = $this->getCharacterScenes($character);
             if (count($nodeList) >= $timeLineFloor) {
-                $this->prepareTimeline($hadContent, $nodeList, $character, $optionalColumns);
-                $hadContent = true;
-                $newHadContent = true;
+                if ($writeMarkdown) {
+                    $this->prepareTimelineMarkdown($markdownFile, $nodeList, $character, $optionalColumns);
+                } else {
+                    $this->prepareTimeline($hadContent, $nodeList, $character, $optionalColumns);
+                    $hadContent = true;
+                    $newHadContent = true;
+                }
             } else {
                 $skipped[] = $character;
             }
+        }
+        if ($writeMarkdown) {
+            fclose($markdownFile);
         }
         if (count($skipped) > 0) {
             echo "Skip timeline for < $timeLineFloor scenes: " . implode(', ', $skipped) . "\n";

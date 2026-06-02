@@ -451,6 +451,19 @@ You can change this with the "show" option:
 }
 ```
 
+It is also possible to redirect timelines to a Markdown document 
+(which recent versions of LibreOffice can read) by setting the `markdown` flag true.
+In this case, the data will not be added to the output sheets, 
+but instead directed to a file with the same base name as the sheets and a ".md" extension.
+```json lines
+{
+  "timelines": {
+    "markdown": true
+  }
+}
+```
+
+
 ### Word and Phrase Use and Clustering Analysis
 
 The `analysis` flag is a boolean true or false (default). When enabled, 
