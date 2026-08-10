@@ -1,5 +1,5 @@
 {
-  "characters": ["name", "synopsis"],
+  "characters": ["name", "synopsis", "@meta_updatedDate"],
   "columns": [
     "_sequence",
     "name",
@@ -22,7 +22,8 @@
       }
     },
     "_sla",
-    "synopsis"
+    "synopsis",
+    "@meta_updatedDate"
   ],
   "timelines": [
     "jane"
