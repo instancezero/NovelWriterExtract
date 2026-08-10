@@ -40,6 +40,9 @@ class ExtractGrid
         '@tag',
         '_folder',
         //'synopsis',
+        NovelData::META_TAG . 'name',
+        NovelData::META_TAG . 'createdDate',
+        NovelData::META_TAG . 'updatedDate',
     ];
     protected array $characterAttributes = [];
     protected array $characterData = [];
@@ -68,6 +71,14 @@ class ExtractGrid
         '@focus' => 'Focus Character',
         '@location' => 'Location(s)',
         '@mention' => 'Mentions',
+        NovelData::META_TAG . 'class' => 'Document Class',
+        NovelData::META_TAG . 'createdDate' => 'Created',
+        NovelData::META_TAG . 'handle' => 'Document Handle',
+        NovelData::META_TAG . 'layout' => 'Document Layout',
+        NovelData::META_TAG . 'name' => 'Document Name',
+        NovelData::META_TAG . 'parent' => 'Document Parent',
+        NovelData::META_TAG . 'textHash' => 'Text Hash',
+        NovelData::META_TAG . 'updatedDate' => 'Updated',
         '@object' => 'Objects',
         '@plot' => 'Plot',
         '@pov' => 'Point of View',
@@ -112,6 +123,10 @@ class ExtractGrid
     protected array $locationAttributes = [];
     protected array $locationData;
     protected array $locationFiles;
+    static protected array $metaDefaults = [
+        NovelData::META_TAG . 'createdDate' => true,
+        NovelData::META_TAG . 'updatedDate' => true,
+    ];
     /**
      * @var false|mixed
      */
@@ -174,6 +189,9 @@ class ExtractGrid
         'prose',
         'emotions',
         'comments',
+        NovelData::META_TAG . 'name',
+        NovelData::META_TAG . 'createdDate',
+        NovelData::META_TAG . 'updatedDate',
     ];
     protected array $sceneAttributes = [];
     /**
@@ -505,15 +523,29 @@ class ExtractGrid
      */
     private function getColumns(mixed $option, array $default): array|false
     {
-        // If the column specification is 'true', then include all columns.
+        $result = [];
+        // Get a list of all metadata items we should not show by default.
+        $metaRestricted = [];
+        foreach ($default as $value) {
+            if (
+                str_starts_with($value, NovelData::META_TAG)
+                && !(self::$metaDefaults[$value] ?? false)
+            ) {
+                $metaRestricted[] = $value;
+            }
+        }
+        $unrestricted = array_diff($default, $metaRestricted);
+        // If the column specification is 'true', then include all unrestricted columns.
         if ($option === true) {
-            return $default;
+            return $unrestricted;
         }
         // If the user has specified * as a column, inject the default columns.
-        $result = [];
+        // If they have specified **, inject the restricted metadata columns.
         foreach ($option as $column) {
             if ($column === '*') {
-                $result = array_merge($result, $default);
+                $result = array_merge($result, $unrestricted);
+            } elseif ($column === '**') {
+                $result = array_merge($result, $metaRestricted);
             } else {
                 $result[] = $column;
             }
@@ -669,10 +701,15 @@ class ExtractGrid
      */
     private function loadFile(array $file, array &$inUse): NovelData
     {
-        $markdown = explode(
-            "\n",
-            @file_get_contents("$this->sourcePath/content/{$file['handle']}.nwd")
-        );
+        $basePath = "$this->sourcePath/content/{$file['handle']}";
+        if (file_exists("$basePath.md")) {
+            $extension = '.md';
+        } elseif (file_exists("$basePath.nwd")) {
+            $extension = '.nwd';
+        } else {
+            $extension = '';
+        }
+        $markdown = explode("\n", @file_get_contents("$basePath$extension"));
         $loader = new NovelWriterFileLoader();
         return $loader->loadFile($file, $markdown, $inUse);
     }
@@ -781,12 +818,18 @@ class ExtractGrid
         $this->sceneLoader = new NovelWriterFileLoader();
         // Track if we're in the scene header or the body, so we don't accumulate inline comments.
         foreach ($this->sceneFiles as $sceneNode) {
-            $markdown = explode(
-                "\n",
-                @file_get_contents("$this->sourcePath/content/{$sceneNode['handle']}.nwd")
-            );
+            $basePath = "$this->sourcePath/content/{$sceneNode['handle']}";
+            if (file_exists("$basePath.md")) {
+                $extension = '.md';
+            } elseif (file_exists("$basePath.nwd")) {
+                $extension = '.nwd';
+            } else {
+                continue;
+            }
+            $markdown = explode("\n", @file_get_contents("$basePath$extension"));
             $this->sceneLoader->loadScene($sceneNode, $markdown, $this->sceneData);
         }
+        unset($markdown);
         $this->profileScenes();
         foreach (array_keys($this->sceneLoader->inUse) as $key) {
             $inUse[$key] = true;

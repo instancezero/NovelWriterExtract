@@ -100,8 +100,14 @@ The overall syntax is (each section is detailed below):
 }
 ```
 
-A column definition can be either the name of a %story term
-or the name of an @ reference in NovelWriter.
+A simple column definition can be:
+* The name of a %story term
+* The name of an @ reference in NovelWriter
+* An underscore followed by the name of a system or synthetic column. See each section for details. 
+* A * to include all columns except some technical document metadata
+* A ** to include the technical document metadata
+
+See the section on document metadata for more information.
 
 ### Characters
 
@@ -133,6 +139,8 @@ Then the default output columns, with `characters` set to true will be:
 * name
 * tag
 * folder (only if there are character sub-folders)
+* created date
+* updated date
 * age
 * build
 * nickname
@@ -143,12 +151,34 @@ If `characters` is \[nickname, age], then the columns will be:
 * name
 * tag
 * folder (only if there are character sub-folders)
+* created date
+* updated date
 * nickname
 * age
 * synopsis
 
 Where the build column is omitted and the column order has changed.
 
+### Document Metadata
+
+Each content file in the project's content contains a header of metadata:
+
+* name: the document name as it appears in the project tree.
+* parent: a hex identifier of the parent node (if any)
+* handle: a unique hex identifier for the document (this is the root of the document filename).
+* class: The type of document
+* layout: (unclear)
+* textHash: a hash of the document's text data.
+* createdDate: when the document was created.
+* updatedDate: when the document was last modified.
+
+This data can be accessed via the @meta_ column prefix.
+For example, @meta_updatedDate will return the document's last edit date.
+The creation and update dates can be generally useful and are included by default.
+The other metadata columns represent technical document structure 
+and can only be included by name or by use of the ** wildcard.
+
+Note that for files with multiple scenes, this data will be the same for all scenes in the file.
 
 ### Locations
 
@@ -175,6 +205,8 @@ Besides the @ tags and %story terms, these column names are available:
 * _slg: A sentence length graph. (details below).
 * _status: The text value associated with the status icon in the document tree.
 * words: The number of words in the scene.
+* A * for all columns in use in the scene.
+* A ** for the technical metadata columns.
 
 A simple format file could look like this:
 
@@ -500,6 +532,14 @@ The "wrap" setting specifies the maximum width of a column in characters. The de
 This does not apply to the CSV output file format
 
 ## Release Notes
+
+### 1.5.0 2026-08-09
+
+Changed:
+- novelWriter's file format has changed with version 2026.2.
+novelWriterExtract now reads both the new (.md) and older (.nwd) formats.
+- Document metadata from a document is now imported into the scene.
+If a document has multiple scenes, the metadata is duplicated into each.
 
 ### 1.4.1 2026-05-11
 

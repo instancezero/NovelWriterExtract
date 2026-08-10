@@ -8,6 +8,7 @@ use Carbon\Exceptions\InvalidFormatException;
 
 class NovelData implements ArrayAccess
 {
+    const string META_TAG = '@meta_';
     const string STRUCTURE_KEYWORD = 'story';
 
     public array $comments = [];
@@ -30,6 +31,7 @@ class NovelData implements ArrayAccess
      * @var array|mixed
      */
     public array $distribution;
+    public array $metadata = [];
     public string $name {
         set {
             $this->name = trim(preg_replace('/^###!?\s+/', '', $value));
@@ -143,14 +145,21 @@ class NovelData implements ArrayAccess
 
     public function offsetExists(mixed $offset): bool
     {
+        if ($offset === null) {
+            return false;
+        }
         if (str_starts_with($offset, '_') && isset($this->node[$offset])) {
-            return isset($this->node[$offset]);
+            return true;
         }
         if (isset($this->{$offset})) {
             return true;
         }
         if (isset($this->terms[$offset])) {
             return true;
+        }
+        if (str_starts_with($offset, self::META_TAG)) {
+            $subOffset = substr($offset, strlen(self::META_TAG));
+            return isset($this->metadata[$subOffset]);
         }
         return false;
     }
@@ -165,6 +174,12 @@ class NovelData implements ArrayAccess
         }
         if (isset($this->terms[$offset])) {
             return $this->terms[$offset];
+        }
+        if (str_starts_with($offset, self::META_TAG)) {
+            $subOffset = substr($offset, strlen(self::META_TAG));
+            if (isset($this->metadata[$subOffset])) {
+                return $this->metadata[$subOffset];
+            }
         }
         return null;
     }
@@ -219,6 +234,47 @@ class NovelData implements ArrayAccess
             // Just a regular comment (in the header)
             $this->comments[] = trim(substr($line, 1));
             $inUse['comments'] = true;
+        }
+    }
+
+    public function parseMetaData(string $line, array &$inUse): void
+    {
+        if (str_starts_with($line, '%%~')) {
+            [$key, $value] = explode(':', substr($line, 3), 2);
+            $value = trim($value);
+            $decompose = explode('/', $value);
+            switch ($key) {
+                case 'date':
+                    $this->metadata['createdDate'] = $decompose[0];
+                    $this->metadata['updatedDate'] = $decompose[1];
+                    $inUse[self::META_TAG . 'createdDate'] = true;
+                    $inUse[self::META_TAG . 'updatedDate'] = true;
+                    break;
+                case 'hash':
+                    $this->metadata['textHash'] = $value;
+                    break;
+                case 'kind':
+                    $this->metadata['class'] = $decompose[0];
+                    $this->metadata['layout'] = $decompose[1];
+                    $inUse[self::META_TAG . 'class'] = true;
+                    $inUse[self::META_TAG . 'layout'] = true;
+                    break;
+                case 'path':
+                    $this->metadata['parent'] = $decompose[0];
+                    $this->metadata['handle'] = $decompose[1];
+                    $inUse[self::META_TAG . 'parent'] = true;
+                    $inUse[self::META_TAG . 'handle'] = true;
+                    break;
+                default:
+                    $this->metadata[$key] = $value;
+                    $inUse[self::META_TAG . $key] = true;
+                    break;
+            }
+        } else {
+            [$key, $value] = explode('=', $line, 2);
+            $key = trim($key);
+            $this->metadata[$key] = stripcslashes(substr(trim($value), 1, -1));
+            $inUse[self::META_TAG . $key] = true;
         }
     }
 

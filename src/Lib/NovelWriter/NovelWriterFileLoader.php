@@ -25,17 +25,30 @@ class NovelWriterFileLoader
     {
         $data = new NovelData($node);
         $data->name = $node['name'];
+        $inToml = false;
 
         foreach ($markdown as $line) {
             $line = rtrim($line);
             if ($line === '') {
                 continue;
             }
+            if ($line === '+++') {
+                // This is a TOML demark line in versions >= 2026.2
+                $inToml = !$inToml;
+                continue;
+            }
+            if ($inToml) {
+                $data->parseMetaData($line, $inUse);
+                continue;
+            }
+            if (str_starts_with($line, '%%')) {
+                // We're in the header metadata of a pre 2026.2 release.
+                $data->parseMetaData($line, $inUse);
+                continue;
+            }
             if (str_starts_with($line, '%')) {
-                if (!str_starts_with($line, '%%')) {
-                    // Look for a story extension
-                    $data->parseComment($line, $inUse);
-                }
+                // Look for a story extension
+                $data->parseComment($line, $inUse);
             } elseif (str_starts_with($line, '@')) {
                 $data->parseReference($line, $inUse);
             }
@@ -55,9 +68,24 @@ class NovelWriterFileLoader
     public function loadScene(array $node, array $markdown, array &$sceneData): void
     {
         $this->inUse['_sl'] = true;
-        $inHeader = true;
+        $headerScene = new NovelData($node);
+        $inToml = false;
         foreach ($markdown as $line) {
             $line = rtrim($line);
+            if ($line === '+++') {
+                // This is a TOML demark line in versions >= 2026.2
+                $inToml = !$inToml;
+                continue;
+            }
+            if ($inToml) {
+                $headerScene->parseMetaData($line, $this->inUse);
+                continue;
+            }
+            if (str_starts_with($line, '%%')) {
+                // We're in the header metadata of a pre 2026.2 release.
+                $headerScene->parseMetaData($line, $this->inUse);
+                continue;
+            }
             if ($this->isSceneHeader($line)) {
                 // This is the start of a scene, save the preceding scene, if any.
                 if (isset($scene)) {
@@ -65,23 +93,16 @@ class NovelWriterFileLoader
                     $sceneData[] = $scene;
                 }
                 // Reset the header flag, invalidate the word count, and clear the comment buffer
-                $inHeader = true;
-                $scene = new NovelData($node);
+                $scene = clone $headerScene;
                 $this->sceneStatusList[$node['_status']] = true;
                 $scene->name = $line;
             } elseif (isset($scene)) {
                 if (str_starts_with($line, '%')) {
-                    if (str_starts_with($line, '%%')) {
-                        // We're in the header metadata
-                        $inHeader = true;
-                    } elseif ($inHeader) {
-                        // Look for a story extension
-                        $scene->parseComment($line, $this->inUse);
-                    }
+                    // Regular comment. Look for a story extension
+                    $scene->parseComment($line, $this->inUse);
                 } elseif (str_starts_with($line, '@')) {
                     $scene->parseReference($line, $this->inUse);
                 } else {
-                    $inHeader = $line === '';
                     if (preg_match('!^[%@#[]!', $line)) {
                         continue;
                     }
