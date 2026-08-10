@@ -3,7 +3,7 @@
   "description": "A tool to extract novelWriter metadata.",
   "minimum-stability": "stable",
   "license": "GPL-3.0-or-later",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "authors": [
     {
       "name": "Alan Langford",
@@ -23,7 +23,8 @@
     }
   },
   "require-dev": {
-    "phpacker/phpacker": "^0.3.5"
+    "phpacker/phpacker": "^0.3.5",
+    "phpunit/phpunit": "^13"
   },
   "config": {
     "allow-plugins": {
