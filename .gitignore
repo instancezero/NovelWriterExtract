@@ -2,3 +2,5 @@
 composer.lock
 /test/test1i06n*
 /test/testi06n*
+/test/.phpunit.result.cache
+/test/results/
