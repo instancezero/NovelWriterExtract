@@ -41,8 +41,8 @@ class ExtractGrid
         '_folder',
         //'synopsis',
         NovelData::META_TAG . 'name',
-        NovelData::META_TAG . 'createdDate',
-        NovelData::META_TAG . 'updatedDate',
+        NovelData::META_TAG . 'createddate',
+        NovelData::META_TAG . 'updateddate',
     ];
     protected array $characterAttributes = [];
     protected array $characterData = [];
@@ -72,13 +72,13 @@ class ExtractGrid
         '@location' => 'Location(s)',
         '@mention' => 'Mentions',
         NovelData::META_TAG . 'class' => 'Document Class',
-        NovelData::META_TAG . 'createdDate' => 'Created',
+        NovelData::META_TAG . 'createddate' => 'Created',
         NovelData::META_TAG . 'handle' => 'Document Handle',
         NovelData::META_TAG . 'layout' => 'Document Layout',
         NovelData::META_TAG . 'name' => 'Document Name',
         NovelData::META_TAG . 'parent' => 'Document Parent',
         NovelData::META_TAG . 'textHash' => 'Text Hash',
-        NovelData::META_TAG . 'updatedDate' => 'Updated',
+        NovelData::META_TAG . 'updateddate' => 'Updated',
         '@object' => 'Objects',
         '@plot' => 'Plot',
         '@pov' => 'Point of View',
@@ -124,8 +124,8 @@ class ExtractGrid
     protected array $locationData;
     protected array $locationFiles;
     static protected array $metaDefaults = [
-        NovelData::META_TAG . 'createdDate' => true,
-        NovelData::META_TAG . 'updatedDate' => true,
+        NovelData::META_TAG . 'createddate' => true,
+        NovelData::META_TAG . 'updateddate' => true,
     ];
     /**
      * @var false|mixed
@@ -190,8 +190,8 @@ class ExtractGrid
         'emotions',
         'comments',
         NovelData::META_TAG . 'name',
-        NovelData::META_TAG . 'createdDate',
-        NovelData::META_TAG . 'updatedDate',
+        NovelData::META_TAG . 'createddate',
+        NovelData::META_TAG . 'updateddate',
     ];
     protected array $sceneAttributes = [];
     /**
@@ -212,6 +212,8 @@ class ExtractGrid
     static protected array $styles = [
         '*' => ['align' => Alignment::HORIZONTAL_GENERAL, 'onFirst' => false, 'wrap' => true],
         '@' => ['align' => Alignment::HORIZONTAL_CENTER, 'onFirst' => true, 'wrap' => true],
+        '@meta_createddate' => ['numberFormat' => 'YYYY-MM-DD', 'onFirst' => false],
+        '@meta_updateddate' => ['numberFormat' => 'MMM D, YYYY', 'onFirst' => false],
         '@tag' => ['align' => Alignment::HORIZONTAL_CENTER, 'onFirst' => false, 'wrap' => true],
         'comments' => ['align' => Alignment::HORIZONTAL_LEFT, 'wrap' => false],
         'duration' => ['align' => Alignment::HORIZONTAL_RIGHT],
@@ -523,6 +525,17 @@ class ExtractGrid
      */
     private function getColumns(mixed $option, array $default): array|false
     {
+        // Normalize the case for comparison
+        foreach ($option as &$item) {
+            if (is_string($item)) {
+                $item = strtolower($item);
+            } else {
+                if (isset($item['key'])) {
+                    $item['key'] = strtolower($item['key']);
+                }
+            }
+        }
+
         $result = [];
         // Get a list of all metadata items we should not show by default.
         $metaRestricted = [];

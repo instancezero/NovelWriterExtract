@@ -533,6 +533,10 @@ This does not apply to the CSV output file format
 
 ## Release Notes
 
+### 1.5.1 2026-08-10
+Fixed:
+- Case conflicts were preventing the use of createDate and updateDate.
+
 ### 1.5.0 2026-08-09
 
 Changed:

@@ -5,6 +5,7 @@ namespace Lib\NovelWriter;
 use ArrayAccess;
 use Carbon\Carbon;
 use Carbon\Exceptions\InvalidFormatException;
+use PhpOffice\PhpSpreadsheet\Shared\Date;
 
 class NovelData implements ArrayAccess
 {
@@ -245,10 +246,17 @@ class NovelData implements ArrayAccess
             $decompose = explode('/', $value);
             switch ($key) {
                 case 'date':
-                    $this->metadata['createdDate'] = $decompose[0];
-                    $this->metadata['updatedDate'] = $decompose[1];
-                    $inUse[self::META_TAG . 'createdDate'] = true;
-                    $inUse[self::META_TAG . 'updatedDate'] = true;
+                    foreach ($decompose as &$date) {
+                        if ($date === 'Unknown') {
+                            $date = null;
+                        } else {
+                            $date = Date::convertIsoDate(new Carbon($date)->toIso8601String());
+                        }
+                    }
+                    $this->metadata['createddate'] = $decompose[0];
+                    $this->metadata['updateddate'] = $decompose[1];
+                    $inUse[self::META_TAG . 'createddate'] = true;
+                    $inUse[self::META_TAG . 'updateddate'] = true;
                     break;
                 case 'hash':
                     $this->metadata['textHash'] = $value;
