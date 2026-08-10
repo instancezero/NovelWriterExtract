@@ -4,3 +4,6 @@ composer.lock
 /test/testi06n*
 /test/.phpunit.result.cache
 /test/results/
+/bin/linux/
+/bin/mac/
+/bin/windows/
